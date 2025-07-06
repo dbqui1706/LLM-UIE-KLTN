@@ -1,0 +1,14 @@
+# Ignore IDE-specific files
+.idea/
+
+# Ignore Gradio cache
+.gradio/
+
+# Ignore Python cache
+__pycache__/
+
+# Ignore environment variables and virtual environments
+.env
+*.env
+venv/
+.envrc

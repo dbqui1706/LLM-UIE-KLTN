@@ -1,0 +1,87 @@
+import string
+
+from tqdm import tqdm
+from glob import glob
+
+from utils.io import load_json, write_json
+from utils.preprocessing_text import preprocessing_text
+from utils.util import remove_duplicate
+
+
+def combine_data(folder_dir: str, mode: str = "train"):
+    folders = glob(f'{folder_dir}/*')
+
+    dataset = []
+
+    for folder in tqdm(folders):
+        folder_name = folder.split('/')[-1]
+        files = glob(f'{folder}/*.json')
+
+        labels = load_json(f'{folder}/labels.json')
+
+        for file in tqdm(files):
+            if mode in file:
+                data = load_json(file)
+
+                for metadata in data:
+                    check_arguments = 1
+
+                    query = metadata['sentence']
+                    events = metadata['events']
+
+                    answer = []
+
+                    if len(events) == 0:
+                        continue
+
+                    else:
+                        for metadata in events:
+                            event = metadata['trigger']
+                            typing = metadata['type']
+
+                            answer.append(f"{typing}: {event}")
+
+                            arguments = metadata['arguments']
+
+                            if len(arguments) == 0:
+                                check_arguments = 0
+
+                            for arg in arguments:
+                                name = arg['name']
+                                role = arg['role']
+
+                                answer.append(f"{role}: {name}")
+
+                        answer = remove_duplicate(answer)
+                        answer = ' | '.join(answer)
+                        answer = answer.strip().strip(string.punctuation).strip()
+
+                    if check_arguments == 1:
+                        result = {
+                            'task': 'EE',
+                            'query': preprocessing_text(query),
+                            'answer': preprocessing_text(answer),
+                            'labels': labels,
+                            'dataset_name': folder_name.lower().replace(' ', '_')
+                        }
+
+                        dataset.append(result)
+
+    print(f'{mode} set has {len(dataset)} examples')
+
+    if mode == "train":
+        write_json(dataset, 'data/train/ee_data.json')
+    elif mode == "dev":
+        write_json(dataset, 'data/valid/ee_data.json')
+    elif mode == "test":
+        write_json(dataset, 'data/benchmark/ee_data.json')
+    else:
+        raise ValueError(f'Invalid mode {mode}. Choose from "train", "dev", "test".')
+
+
+if __name__ == '__main__':
+    folder_dir = 'data/raw/EE'
+
+    combine_data(folder_dir, "train")
+    combine_data(folder_dir, "test")
+    combine_data(folder_dir, "dev")
