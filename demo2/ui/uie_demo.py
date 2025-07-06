@@ -18,6 +18,8 @@ class UIEUi:
             # Load model - có thể customize model name ở đây
             # self.model = LLamaModel(model_name='quidangz/LLama-8B-Instruct-MultiTask-CE')
             self.model = None
+            
+            # Document processor placeholder
             self.document_processor = None
 
             if self.model and hasattr(self.model, 'model') and self.model.model is not None:
@@ -62,3 +64,11 @@ class UIEUi:
         # Implementation moved from main file
         # ... (same as before)
         pass
+
+    def get_current_chunks(self):
+        """Get currently stored chunks"""
+        return self.current_chunks
+    
+    def set_current_chunks(self, chunks):
+        """Set current chunks"""
+        self.current_chunks = chunks

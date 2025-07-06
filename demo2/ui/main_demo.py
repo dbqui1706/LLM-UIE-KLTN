@@ -7,8 +7,7 @@ sys.path.append(project_root)
 
 from demo2.components import (
     text_extraction_tab,
-    document_processing_tab,
-    chunk_extraction_tab,
+    document_processing_extraction_tab,
     setup_event_handlers
 )
 from demo2.components.handlers import EventHandlers
@@ -29,23 +28,15 @@ def main():
         """)
 
         with gr.Tabs():
-            # Tab 1: Text Extraction
             with gr.TabItem("📝 Text Extraction"):
                 text_extraction_comp = text_extraction_tab()
             
-            # Tab 2: Document Processing
-            with gr.TabItem("📄 Document Processing"):
-                document_processing_comp = document_processing_tab()
-            
-            # Tab 3: Batch Extraction from Chunks
-            with gr.TabItem("🔄 Batch Chunk Extraction"):
-                chunk_extraction_comp = chunk_extraction_tab()
+            with gr.TabItem("📄 Document Processing & Extraction"):
+                document_processing_extraction_comp = document_processing_extraction_tab()
 
-        # Organize components
         components = {
             'text_extraction': text_extraction_comp,
-            'document_processing': document_processing_comp,
-            'chunk_extraction': chunk_extraction_comp
+            'document_processing_extraction': document_processing_extraction_comp 
         }
         
         # Setup tất cả event handlers

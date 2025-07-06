@@ -5,6 +5,11 @@ import torch
 import logging
 from typing import Dict
 
+# Configure logging
+logger = logging.getLogger(__name__)
+# Ensure logging is set up to capture debug messages
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 class MemoryManager:
     @staticmethod
     def get_memory_usage() -> Dict[str, float]:

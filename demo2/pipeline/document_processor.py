@@ -9,13 +9,10 @@ from pathlib import Path
 
 # Add parent directory to path
 
-import sys
-import os
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from memory import MemoryManager
-from config import ProcessingMode, ProcessingStats, DocumentResult, SupportedFormat
-from processing import clean_docling_output, quick_clean_metadata
+from .memory import MemoryManager
+from .config import ProcessingMode, ProcessingStats, DocumentResult, SupportedFormat
+from .processing import clean_docling_output, quick_clean_metadata
 from docling.document_converter import DocumentConverter, PdfFormatOption, WordFormatOption
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import (
