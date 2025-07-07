@@ -4,43 +4,64 @@ from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
 
-# LangChain imports - thư viện chunking phổ biến nhất
-from langchain_text_splitters import (
-    RecursiveCharacterTextSplitter,
-    TokenTextSplitter,
-    SentenceTransformersTokenTextSplitter,
-    SpacyTextSplitter,
-    NLTKTextSplitter,
-    MarkdownHeaderTextSplitter
-)
+# LangChain imports with error handling
+try:
+    from langchain_text_splitters import (
+        RecursiveCharacterTextSplitter,
+        TokenTextSplitter,
+        SentenceTransformersTokenTextSplitter,
+        SpacyTextSplitter,
+        NLTKTextSplitter,
+        MarkdownHeaderTextSplitter
+    )
+    LANGCHAIN_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"LangChain text splitters not available: {e}")
+    LANGCHAIN_AVAILABLE = False
 
-# For semantic chunking
-from sentence_transformers import SentenceTransformer
+# Sentence Transformers import with error handling
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
+
+# NLTK import with error handling
+try:
+    import nltk
+    # Download required data if not present
+    try:
+        nltk.data.find('tokenizers/punkt')
+    except LookupError:
+        nltk.download('punkt', quiet=True)
+    NLTK_AVAILABLE = True
+except ImportError:
+    NLTK_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 
 class ChunkingStrategy(Enum):
     """Các strategy chunking khác nhau"""
-    RECURSIVE = "recursive"  # Recursive character splitting
-    SENTENCE = "sentence"  # Sentence-based splitting
-    TOKEN = "token"  # Token-based splitting
-    SEMANTIC = "semantic"  # Semantic similarity splitting
-    SPACY = "spacy"  # spaCy sentence splitting
-    HYBRID = "hybrid"  # Combination approach
+    RECURSIVE = "recursive"
+    SENTENCE = "sentence"
+    TOKEN = "token"
+    SEMANTIC = "semantic"
+    SPACY = "spacy"
+    HYBRID = "hybrid"
     MARKDOWN = "markdown"
 
 
 @dataclass
 class ChunkingConfig:
-    strategy: ChunkingStrategy = ChunkingStrategy.SENTENCE
-    chunk_size: int = 300  # Optimal cho UIE models
-    chunk_overlap: int = 50  # Overlap để preserve context
-    length_function: str = "len"  # "len" hoặc "tiktoken"
+    strategy: ChunkingStrategy = ChunkingStrategy.RECURSIVE  # ✅ Changed default
+    chunk_size: int = 300
+    chunk_overlap: int = 50
+    length_function: str = "len"
     separators: Optional[List[str]] = None
     keep_separator: bool = True
 
-    # semantic chunking
+    # Semantic chunking
     model_name: str = "Qwen/Qwen3-Embedding-0.6B"
     similarity_threshold: float = 0.7
 
@@ -48,20 +69,34 @@ class ChunkingConfig:
     min_chunk_size: int = 50
     max_chunk_size: int = 500
 
+    def __post_init__(self):
+        """Validate config after initialization"""
+        if self.chunk_size <= 0:
+            raise ValueError("chunk_size must be positive")
+        if self.chunk_overlap < 0:
+            raise ValueError("chunk_overlap cannot be negative")
+        if self.chunk_overlap >= self.chunk_size:
+            raise ValueError("chunk_overlap must be less than chunk_size")
+
 
 class DocumentChunker:
     def __init__(self, config: ChunkingConfig = None):
+        if not LANGCHAIN_AVAILABLE:
+            raise ImportError("LangChain text splitters are required. Install with: pip install langchain-text-splitters")
+        
         self.config = config or ChunkingConfig()
         self.splitter = None
         self.semantic_model = None
+        self._strategy_cache = {}  # ✅ Cache cho splitters
 
-        # Initialize splitter based on strategy
+        # Initialize splitter
         self._initialize_splitter()
-
-        logger.info(f"Initialized DocumentChunker with strategy: {self.config.strategy.value}")
+        
+        logger.info(f"✅ Initialized DocumentChunker with strategy: {self.config.strategy.value}")
 
     def _initialize_splitter(self):
-
+        """Initialize splitter based on strategy với error handling"""
+        
         strategy_map = {
             ChunkingStrategy.RECURSIVE: self._init_recursive_splitter,
             ChunkingStrategy.SENTENCE: self._init_sentence_splitter,
@@ -72,10 +107,36 @@ class DocumentChunker:
             ChunkingStrategy.MARKDOWN: self._init_markdown_splitter
         }
 
-        strategy_map[self.config.strategy]()
+        # ✅ Check if strategy is cached
+        cache_key = self._get_cache_key()
+        if cache_key in self._strategy_cache:
+            self.splitter = self._strategy_cache[cache_key]
+            logger.info(f"🔄 Using cached splitter for {self.config.strategy.value}")
+            return
+
+        try:
+            init_func = strategy_map.get(self.config.strategy)
+            if init_func:
+                init_func()
+                # ✅ Cache the splitter
+                self._strategy_cache[cache_key] = self.splitter
+                logger.info(f"✅ Initialized {self.config.strategy.value} splitter")
+            else:
+                raise ValueError(f"Unknown chunking strategy: {self.config.strategy}")
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize {self.config.strategy.value} splitter: {e}")
+            # ✅ Fallback to recursive
+            logger.info("🔄 Falling back to recursive splitter")
+            self._init_recursive_splitter()
+
+    def _get_cache_key(self) -> str:
+        """Generate cache key for current config"""
+        return (f"{self.config.strategy.value}_{self.config.chunk_size}_"
+                f"{self.config.chunk_overlap}_{hash(str(self.config.separators))}")
 
     def _init_recursive_splitter(self):
-        """Initialize RecursiveCharacterTextSplitter"""
+        """✅ Fixed RecursiveCharacterTextSplitter"""
         separators = self.config.separators or [
             "\n\n", "\n", ". ", "! ", "? ", "; ", ", ", " ", ""
         ]
@@ -85,216 +146,346 @@ class DocumentChunker:
             chunk_overlap=self.config.chunk_overlap,
             separators=separators,
             keep_separator=self.config.keep_separator,
-            is_separator_regex=False
-        )
-
-    def _init_sentence_splitter(self):
-        # Sử dụng NLTK sentence splitter với custom config
-        self.splitter = NLTKTextSplitter(
-            chunk_size=self.config.chunk_size,
-            chunk_overlap=self.config.chunk_overlap,
+            is_separator_regex=False,
             length_function=len
         )
+        logger.info(f"📏 Recursive splitter: chunk_size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
+
+    def _init_sentence_splitter(self):
+        """✅ Fixed sentence splitter với NLTK check"""
+        if not NLTK_AVAILABLE:
+            logger.warning("❌ NLTK not available, falling back to recursive splitter")
+            self._init_recursive_splitter()
+            return
+
+        try:
+            self.splitter = NLTKTextSplitter(
+                chunk_size=self.config.chunk_size,
+                chunk_overlap=self.config.chunk_overlap,
+                language="english",
+                preserve_sentences=self.config.preserve_sentences
+            )
+            logger.info(f"📏 NLTK sentence splitter: chunk_size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
+        except Exception as e:
+            logger.warning(f"❌ NLTK splitter failed: {e}, falling back to recursive")
+            self._init_recursive_splitter()
 
     def _init_token_splitter(self):
-        """token-based splitter"""
-        self.splitter = TokenTextSplitter(
-            chunk_size=self.config.chunk_size,
-            chunk_overlap=self.config.chunk_overlap,
-            encoding_name="cl100k_base"  # GPT-4 encoding
-        )
+        """✅ Fixed token-based splitter"""
+        try:
+            self.splitter = TokenTextSplitter(
+                chunk_size=self.config.chunk_size,
+                chunk_overlap=self.config.chunk_overlap,
+                encoding_name="cl100k_base"
+            )
+            logger.info(f"📏 Token splitter: chunk_size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
+        except Exception as e:
+            logger.warning(f"❌ Token splitter failed: {e}, falling back to recursive")
+            self._init_recursive_splitter()
 
     def _init_semantic_splitter(self):
-        """semantic chunker với SentenceTransformers"""
-        # sentence transformer model
-        self.semantic_model = SentenceTransformer(self.config.model_name)
+        """✅ Fixed semantic chunker"""
+        if not SENTENCE_TRANSFORMERS_AVAILABLE:
+            logger.warning("❌ SentenceTransformers not available, falling back to recursive")
+            self._init_recursive_splitter()
+            return
 
-        self.splitter = SentenceTransformersTokenTextSplitter(
-            model_name=self.config.model_name,
-            chunk_overlap=self.config.chunk_overlap,
-            tokens_per_chunk=self.config.chunk_size,
-        )
+        try:
+            # Load model if not cached
+            if not self.semantic_model:
+                self.semantic_model = SentenceTransformer(self.config.model_name)
+
+            self.splitter = SentenceTransformersTokenTextSplitter(
+                model_name=self.config.model_name,
+                chunk_overlap=self.config.chunk_overlap,
+                tokens_per_chunk=self.config.chunk_size,
+            )
+            logger.info(f"📏 Semantic splitter: tokens_per_chunk={self.config.chunk_size}")
+        except Exception as e:
+            logger.warning(f"❌ Semantic splitter failed: {e}, falling back to recursive")
+            self._init_recursive_splitter()
 
     def _init_spacy_splitter(self):
-        """spaCy splitter"""
+        """✅ Fixed spaCy splitter"""
         try:
             self.splitter = SpacyTextSplitter(
                 chunk_size=self.config.chunk_size,
                 chunk_overlap=self.config.chunk_overlap,
                 pipeline="en_core_web_sm"
             )
-        except OSError:
-            logger.warning("spaCy model not found, falling back to sentence splitter")
-            self._init_sentence_splitter()
+            logger.info(f"📏 spaCy splitter: chunk_size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
+        except Exception as e:
+            logger.warning(f"❌ spaCy splitter failed: {e}, falling back to recursive")
+            self._init_recursive_splitter()
 
     def _init_hybrid_splitter(self):
-        """Initialize hybrid approach"""
-        # Start with sentence-based, then apply recursive if needed
-        self._init_sentence_splitter()
+        """✅ Fixed hybrid approach - không override splitter"""
+        # Hybrid sẽ được handle trong _hybrid_chunking method
+        # Ở đây chỉ init recursive làm base
+        self._init_recursive_splitter()
+        logger.info("📏 Hybrid splitter initialized (uses multiple strategies)")
 
     def _init_markdown_splitter(self):
-        """Initialize Markdown header splitter"""
-        ...
+        """✅ Fixed Markdown splitter"""
+        try:
+            headers_to_split_on = [
+                ("#", "Header 1"),
+                ("##", "Header 2"),
+                ("###", "Header 3"),
+            ]
+            
+            markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+            
+            # Combine với RecursiveCharacterTextSplitter
+            self.splitter = RecursiveCharacterTextSplitter(
+                chunk_size=self.config.chunk_size,
+                chunk_overlap=self.config.chunk_overlap
+            )
+            self.markdown_splitter = markdown_splitter
+            logger.info(f"📏 Markdown splitter: chunk_size={self.config.chunk_size}")
+        except Exception as e:
+            logger.warning(f"❌ Markdown splitter failed: {e}, falling back to recursive")
+            self._init_recursive_splitter()
 
     def chunk_document(
-            self,
-            content: str,
-            metadata: Optional[Dict[str, Any]] = None,
-            task_type: str = "balanced"
+        self,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        task_type: Optional[str] = "balanced"
     ) -> List[Dict[str, Any]]:
-        """
-        Chunk document content với metadata preservation
-
-        Args:
-            content: Text content từ Docling
-            metadata: Document metadata
-            task_type: "ner", "re", "ee", hoặc "balanced"
-
-        Returns:
-            List of chunk dictionaries với content và metadata
-        """
+        """Fixed - respect user settings"""
+        
         if not content or not content.strip():
             return []
 
-        logger.info(f"Chunking document for task: {task_type}")
+        logger.info(f"🔄 Chunking with user settings: chunk_size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
 
-        # Adjust config based on task type
-        self._adjust_config_for_task(task_type)
+        try:
+            # content = self._prepare_content(content)
+            chunks = self._perform_chunking(content)
+            processed_chunks = self._post_process_chunks(chunks, metadata or {})
 
-        # Clean content trước khi chunk
-        cleaned_content = self._prepare_content(content)
+            logger.info(f"✅ Created {len(processed_chunks)} chunks using {self.config.strategy.value}")
+            return processed_chunks
+            
+        except Exception as e:
+            logger.error(f"❌ Chunking failed: {e}")
+            return []
 
-        # Perform chunking
-        if self.config.strategy == ChunkingStrategy.HYBRID:
-            chunks = self._hybrid_chunking(cleaned_content)
-        else:
-            chunks = self._standard_chunking(cleaned_content)
 
-        # Post-process chunks
-        processed_chunks = self._post_process_chunks(chunks, metadata or {})
+    # def _backup_config(self) -> Dict[str, Any]:
+    #     """Backup current config"""
+    #     return {
+    #         'chunk_size': self.config.chunk_size,
+    #         'chunk_overlap': self.config.chunk_overlap,
+    #         'strategy': self.config.strategy
+    #     }
 
-        logger.info(f"Created {len(processed_chunks)} chunks")
-        return processed_chunks
+    # def _restore_config(self, backup: Dict[str, Any]):
+    #     """Restore config from backup"""
+    #     self.config.chunk_size = backup['chunk_size']
+    #     self.config.chunk_overlap = backup['chunk_overlap']
+    #     self.config.strategy = backup['strategy']
 
-    def _adjust_config_for_task(self, task_type: str):
-        """Adjust chunking config dựa trên UIE task"""
+    # def _adjust_config_for_task(self, task_type: str):
+        """✅ Fixed config adjustment với proper re-initialization"""
+        
         task_configs = {
             "ner": {
                 "chunk_size": 250,
                 "chunk_overlap": 30,
-                "preserve_sentences": True
             },
             "re": {
                 "chunk_size": 350,
                 "chunk_overlap": 50,
-                "preserve_sentences": True
             },
             "ee": {
                 "chunk_size": 400,
                 "chunk_overlap": 70,
-                "preserve_sentences": True
             },
             "balanced": {
                 "chunk_size": 300,
                 "chunk_overlap": 50,
-                "preserve_sentences": True
             }
         }
 
         task_config = task_configs.get(task_type, task_configs["balanced"])
-
-        # Update config
+        
+        # ✅ Check if config actually changed
+        config_changed = False
         for key, value in task_config.items():
-            if hasattr(self.config, key):
+            if hasattr(self.config, key) and getattr(self.config, key) != value:
                 setattr(self.config, key, value)
+                config_changed = True
 
-        # Re-initialize splitter với config mới
-        self._initialize_splitter()
+        # ✅ Only re-initialize if config changed
+        if config_changed:
+            logger.info(f"🔄 Config adjusted for {task_type}: chunk_size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
+            self._initialize_splitter()
 
-    def _prepare_content(self, content: str) -> str:
-        """Prepare content trước khi chunking"""
-        # Basic cleaning để improve chunking quality
+    def _perform_chunking(self, content: str) -> List[str]:
+        """✅ Perform chunking với strategy-specific logic"""
+        
+        if self.config.strategy == ChunkingStrategy.HYBRID:
+            return self._hybrid_chunking(content)
+        elif self.config.strategy == ChunkingStrategy.MARKDOWN and hasattr(self, 'markdown_splitter'):
+            return self._markdown_chunking(content)
+        else:
+            return self._standard_chunking(content)
 
-        # Normalize whitespace
-        content = re.sub(r'\s+', ' ', content)
-        content = re.sub(r'\n\s*\n', '\n\n', content)
+    # def _prepare_content(self, content: str) -> str:
+    #     """✅ Prepare content với better cleaning"""
+    #     # Normalize whitespace
+    #     content = re.sub(r'\s+', ' ', content)
+    #     content = re.sub(r'\n\s*\n', '\n\n', content)
 
-        # Fix sentence boundaries
-        content = re.sub(r'\.([A-Z])', r'. \1', content)
-        content = re.sub(r'\!([A-Z])', r'! \1', content)
-        content = re.sub(r'\?([A-Z])', r'? \1', content)
+    #     # Fix sentence boundaries
+    #     content = re.sub(r'\.([A-Z])', r'. \1', content)
+    #     content = re.sub(r'\!([A-Z])', r'! \1', content)
+    #     content = re.sub(r'\?([A-Z])', r'? \1', content)
 
-        return content.strip()
+    #     return content.strip()
 
     def _standard_chunking(self, content: str) -> List[str]:
-        """Standard chunking using configured splitter"""
+        """✅ Standard chunking với error handling"""
         try:
+            if not self.splitter:
+                raise ValueError("Splitter not initialized")
+                
             chunks = self.splitter.split_text(content)
-            return [chunk.strip() for chunk in chunks if chunk.strip()]
+            result = [chunk.strip() for chunk in chunks if chunk.strip()]
+            
+            logger.info(f"📊 Standard chunking: {len(result)} chunks, avg size: {sum(len(c) for c in result) / len(result) if result else 0:.0f}")
+            return result
+            
         except Exception as e:
-            logger.error(f"Error in standard chunking: {e}")
-            # Fallback to simple splitting
+            logger.error(f"❌ Standard chunking failed: {e}")
             return self._fallback_chunking(content)
 
     def _hybrid_chunking(self, content: str) -> List[str]:
-        """Hybrid chunking approach"""
-        # Step 1: Sentence-based splitting
-        self._init_sentence_splitter()
-        initial_chunks = self.splitter.split_text(content)
-
-        # Step 2: Apply recursive splitting cho chunks quá lớn
-        final_chunks = []
-        recursive_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=self.config.max_chunk_size,
-            chunk_overlap=self.config.chunk_overlap
-        )
-
-        for chunk in initial_chunks:
-            if len(chunk) > self.config.max_chunk_size:
-                # Split further
-                sub_chunks = recursive_splitter.split_text(chunk)
-                final_chunks.extend(sub_chunks)
+        """✅ Fixed hybrid chunking - không override splitter"""
+        logger.info("🔄 Starting hybrid chunking")
+        
+        try:
+            # Step 1: Create sentence splitter for initial split
+            if NLTK_AVAILABLE:
+                sentence_splitter = NLTKTextSplitter(
+                    chunk_size=self.config.chunk_size,
+                    chunk_overlap=self.config.chunk_overlap
+                )
             else:
-                final_chunks.append(chunk)
+                # Fallback to recursive với sentence-friendly separators
+                sentence_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=self.config.chunk_size,
+                    chunk_overlap=self.config.chunk_overlap,
+                    separators=[". ", "! ", "? ", "\n\n", "\n", " ", ""]
+                )
 
-        return [chunk.strip() for chunk in final_chunks if chunk.strip()]
+            initial_chunks = sentence_splitter.split_text(content)
+            logger.info(f"📊 Initial sentence split: {len(initial_chunks)} chunks")
+
+            # Step 2: Apply recursive splitting cho chunks quá lớn
+            final_chunks = []
+            recursive_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=self.config.max_chunk_size,
+                chunk_overlap=self.config.chunk_overlap
+            )
+
+            for chunk in initial_chunks:
+                if len(chunk) > self.config.max_chunk_size:
+                    # Split further
+                    sub_chunks = recursive_splitter.split_text(chunk)
+                    final_chunks.extend(sub_chunks)
+                    logger.debug(f"📏 Split large chunk ({len(chunk)} chars) into {len(sub_chunks)} sub-chunks")
+                else:
+                    final_chunks.append(chunk)
+
+            result = [chunk.strip() for chunk in final_chunks if chunk.strip()]
+            logger.info(f"📊 Hybrid chunking completed: {len(result)} chunks")
+            return result
+
+        except Exception as e:
+            logger.error(f"❌ Hybrid chunking failed: {e}")
+            return self._fallback_chunking(content)
+
+    def _markdown_chunking(self, content: str) -> List[str]:
+        """✅ Markdown chunking implementation"""
+        try:
+            # First split by headers
+            md_header_splits = self.markdown_splitter.split_text(content)
+            
+            # Then apply size-based splitting
+            final_chunks = []
+            for doc in md_header_splits:
+                if len(doc.page_content) > self.config.chunk_size:
+                    chunks = self.splitter.split_text(doc.page_content)
+                    final_chunks.extend(chunks)
+                else:
+                    final_chunks.append(doc.page_content)
+            
+            return [chunk.strip() for chunk in final_chunks if chunk.strip()]
+            
+        except Exception as e:
+            logger.error(f"❌ Markdown chunking failed: {e}")
+            return self._fallback_chunking(content)
 
     def _fallback_chunking(self, content: str) -> List[str]:
-        """Fallback chunking method"""
-        # Simple sentence-based splitting
+        """✅ Improved fallback chunking"""
+        logger.warning("🔄 Using fallback chunking method")
+        
+        # Simple sentence-based splitting với better logic
         sentences = re.split(r'[.!?]+\s+', content)
-
+        
         chunks = []
         current_chunk = ""
-
+        
         for sentence in sentences:
-            if len(current_chunk + sentence) < self.config.chunk_size:
-                current_chunk += sentence + ". "
+            # Check if adding sentence would exceed chunk size
+            potential_chunk = current_chunk + sentence + ". "
+            
+            if len(potential_chunk) <= self.config.chunk_size:
+                current_chunk = potential_chunk
             else:
-                if current_chunk:
+                # Save current chunk if not empty
+                if current_chunk.strip():
                     chunks.append(current_chunk.strip())
-                current_chunk = sentence + ". "
+                
+                # Start new chunk
+                if len(sentence) > self.config.chunk_size:
+                    # Split long sentence
+                    words = sentence.split()
+                    temp_chunk = ""
+                    for word in words:
+                        if len(temp_chunk + word + " ") <= self.config.chunk_size:
+                            temp_chunk += word + " "
+                        else:
+                            if temp_chunk.strip():
+                                chunks.append(temp_chunk.strip())
+                            temp_chunk = word + " "
+                    current_chunk = temp_chunk
+                else:
+                    current_chunk = sentence + ". "
 
-        if current_chunk:
+        # Add final chunk
+        if current_chunk.strip():
             chunks.append(current_chunk.strip())
 
+        logger.info(f"📊 Fallback chunking: {len(chunks)} chunks")
         return chunks
 
-    def _post_process_chunks(
-            self,
-            chunks: List[str],
-            base_metadata: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
-        """Post-process chunks với metadata"""
-
+    def _post_process_chunks(self, chunks: List[str], base_metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """✅ Enhanced post-processing với detailed metadata"""
+        
         processed_chunks = []
+        total_chars = sum(len(chunk) for chunk in chunks)
 
         for i, chunk in enumerate(chunks):
             # Skip chunks quá ngắn
             if len(chunk.strip()) < self.config.min_chunk_size:
+                logger.debug(f"⚠️ Skipping chunk {i}: too short ({len(chunk)} chars)")
                 continue
 
-            # Create chunk metadata
+            # Create detailed metadata
             chunk_metadata = base_metadata.copy()
             chunk_metadata.update({
                 "chunk_id": i,
@@ -302,8 +493,15 @@ class DocumentChunker:
                 "total_chunks": len(chunks),
                 "chunk_size": len(chunk),
                 "chunk_tokens": self._count_tokens(chunk),
+                "chunk_words": len(chunk.split()),
                 "chunking_strategy": self.config.strategy.value,
-                "chunk_overlap": self.config.chunk_overlap
+                "chunk_overlap": self.config.chunk_overlap,
+                "chunk_percentage": (len(chunk) / total_chars) * 100 if total_chars > 0 else 0,
+                "config_used": {
+                    "chunk_size": self.config.chunk_size,
+                    "chunk_overlap": self.config.chunk_overlap,
+                    "strategy": self.config.strategy.value
+                }
             })
 
             processed_chunks.append({
@@ -311,44 +509,58 @@ class DocumentChunker:
                 "metadata": chunk_metadata
             })
 
+        logger.info(f"📊 Post-processing: {len(processed_chunks)} valid chunks from {len(chunks)} original chunks")
         return processed_chunks
 
     def _count_tokens(self, text: str) -> int:
-        """Count tokens trong text"""
-        # Simple token counting (có thể improve với tiktoken)
-        return len(text.split())
+        """✅ Improved token counting"""
+        # Simple approximation: ~4 chars per token for English
+        return max(1, len(text) // 4)
 
     def get_chunking_stats(self, chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Get statistics về chunking results"""
+        """✅ Enhanced chunking statistics"""
         if not chunks:
-            return {}
+            return {"error": "No chunks provided"}
 
         chunk_sizes = [len(chunk["content"]) for chunk in chunks]
         chunk_tokens = [chunk["metadata"]["chunk_tokens"] for chunk in chunks]
+        chunk_words = [chunk["metadata"]["chunk_words"] for chunk in chunks]
 
         stats = {
             "total_chunks": len(chunks),
-            "avg_chunk_size": sum(chunk_sizes) / len(chunk_sizes),
-            "min_chunk_size": min(chunk_sizes),
-            "max_chunk_size": max(chunk_sizes),
-            "avg_tokens_per_chunk": sum(chunk_tokens) / len(chunk_tokens),
-            "total_characters": sum(chunk_sizes),
-            "total_tokens": sum(chunk_tokens),
-            "strategy_used": self.config.strategy.value
+            "size_stats": {
+                "avg_chars": sum(chunk_sizes) / len(chunk_sizes),
+                "min_chars": min(chunk_sizes),
+                "max_chars": max(chunk_sizes),
+                "total_chars": sum(chunk_sizes)
+            },
+            "token_stats": {
+                "avg_tokens": sum(chunk_tokens) / len(chunk_tokens),
+                "total_tokens": sum(chunk_tokens)
+            },
+            "word_stats": {
+                "avg_words": sum(chunk_words) / len(chunk_words),
+                "total_words": sum(chunk_words)
+            },
+            "strategy_used": self.config.strategy.value,
+            "config_used": {
+                "chunk_size": self.config.chunk_size,
+                "chunk_overlap": self.config.chunk_overlap
+            }
         }
 
         return stats
 
 
-# Preset configurations cho different use cases
+# ✅ Enhanced preset configurations
 class ChunkingPresets:
-    """Pre-configured chunking setups"""
+    """Pre-configured chunking setups với realistic values"""
 
     @staticmethod
     def uie_optimized() -> ChunkingConfig:
         """Optimized cho UIE tasks"""
         return ChunkingConfig(
-            strategy=ChunkingStrategy.SENTENCE,
+            strategy=ChunkingStrategy.RECURSIVE,  # Most reliable
             chunk_size=300,
             chunk_overlap=50,
             preserve_sentences=True,
@@ -358,7 +570,7 @@ class ChunkingPresets:
 
     @staticmethod
     def fast_processing() -> ChunkingConfig:
-        """Fast processing với basic chunking"""
+        """Fast processing với larger chunks"""
         return ChunkingConfig(
             strategy=ChunkingStrategy.RECURSIVE,
             chunk_size=500,
@@ -368,22 +580,32 @@ class ChunkingPresets:
 
     @staticmethod
     def high_quality() -> ChunkingConfig:
-        """High quality semantic chunking"""
+        """High quality với sentence preservation"""
         return ChunkingConfig(
-            strategy=ChunkingStrategy.SEMANTIC,
+            strategy=ChunkingStrategy.SENTENCE if NLTK_AVAILABLE else ChunkingStrategy.RECURSIVE,
             chunk_size=250,
             chunk_overlap=30,
-            model_name="Qwen/Qwen3-Embedding-0.6B",
-            similarity_threshold=0.8
+            preserve_sentences=True
         )
 
     @staticmethod
     def academic_papers() -> ChunkingConfig:
         """Optimized cho academic papers"""
         return ChunkingConfig(
-            strategy=ChunkingStrategy.SENTENCE,
+            strategy=ChunkingStrategy.HYBRID,
             chunk_size=400,
-            chunk_overlap=0,
-            preserve_sentences=False,
+            chunk_overlap=80,  # Higher overlap for academic content
+            preserve_sentences=True,
             separators=["\n\n", "\n", ". ", "! ", "? ", " "]
+        )
+
+    @staticmethod
+    def debug_mode() -> ChunkingConfig:
+        """Tiny chunks for debugging"""
+        return ChunkingConfig(
+            strategy=ChunkingStrategy.RECURSIVE,
+            chunk_size=100,
+            chunk_overlap=20,
+            min_chunk_size=20,
+            max_chunk_size=150
         )

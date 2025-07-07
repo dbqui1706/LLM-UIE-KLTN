@@ -8,10 +8,8 @@ sys.path.append(project_root)
 from demo2.components import (
     text_extraction_tab,
     document_processing_extraction_tab,
-    setup_event_handlers
 )
-from demo2.components.handlers import EventHandlers
-
+from demo2.components.handlers import setup_event_handlers, EventHandlers
 
 def main():
     """Create main Gradio demo interface"""
@@ -46,4 +44,4 @@ def main():
 
 if __name__ == "__main__":
     demo = main()
-    demo.launch(share=True, debug=True, show_error=True)
+    demo.launch(share=True, debug=True, show_error=False)

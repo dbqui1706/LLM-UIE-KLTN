@@ -1,5 +1,4 @@
 import os
-
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -10,9 +9,9 @@ from dataclasses import dataclass
 import logging
 from enum import Enum
 
-from prompt import PromptManager
-from parser import TaskParser
-from extract import UIEResult, NER, RE, EE
+from .prompt import PromptManager
+from .parser import TaskParser  
+from .extract import UIEResult, NER, RE, EE
 
 logger = logging.getLogger(__name__)
 

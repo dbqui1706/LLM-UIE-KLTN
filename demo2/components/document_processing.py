@@ -70,6 +70,13 @@ def document_processing_extraction_tab():
             
             # Chunks preview section
             with gr.Accordion("👀 Document Chunks", open=True):
+                # ✅ Add download button
+                with gr.Row():
+                    download_chunks_btn = gr.DownloadButton(
+                        label="📥 Download Chunks",
+                        visible=False
+                    )
+                
                 chunks_preview = gr.Markdown(
                     label="Chunks Preview",
                     value="Process a document to see chunks here."
@@ -85,7 +92,7 @@ def document_processing_extraction_tab():
                 extraction_results = gr.Code(
                     label="Detailed Extraction Results (JSON)",
                     language="json",
-                    lines=15
+                    lines=25
                 )
     
     return {
@@ -107,7 +114,8 @@ def document_processing_extraction_tab():
             'doc_json_output': doc_json_output,
             'chunks_preview': chunks_preview,
             'extraction_summary': extraction_summary,
-            'extraction_results': extraction_results
+            'extraction_results': extraction_results,
+            'download_chunks_btn': download_chunks_btn
         }
     }
 
@@ -118,7 +126,7 @@ def _create_processing_options():
         processing_mode = gr.Dropdown(
             choices=["fast", "balanced", "accurate", "batch"],
             label="Processing Mode",
-            value="balanced",
+            value="fast",
             info="fast: Quick processing | balanced: Good speed/quality | accurate: Best quality"
         )
         
@@ -137,7 +145,7 @@ def _create_processing_options():
             
             enable_table_structure = gr.Checkbox(
                 label="Enable Table Structure",
-                value=True,
+                value=False,
                 info="Preserve table structure"
             )
     
@@ -154,7 +162,7 @@ def _create_cleaning_options():
     with gr.Accordion("🧹 Text Cleaning Options", open=False):
         enable_cleaning = gr.Checkbox(
             label="Enable Text Cleaning",
-            value=True,
+            value=False,
             info="Clean and normalize text"
         )
         
@@ -213,11 +221,25 @@ def _create_chunking_options():
                 info="Overlap between chunks"
             )
         
-        task_type = gr.Dropdown(
-            choices=["balanced", "ner", "re", "ee"],
-            label="Optimize for Task",
-            value="balanced",
-            info="Optimize chunking for specific UIE task"
+        with gr.Row():
+            use_task_optimization = gr.Checkbox(
+                label="Use Task Optimization",
+                value=False,
+                info="Override settings above with task-specific values"
+            )
+            
+            task_type = gr.Dropdown(
+                choices=["balanced", "ner", "re", "ee"],
+                label="Task Type",
+                value="balanced",
+                info="Only used if task optimization enabled",
+                visible=False  # Hidden by default
+            )
+        
+        use_task_optimization.change(
+            fn=lambda x: gr.update(visible=x),
+            inputs=[use_task_optimization],
+            outputs=[task_type]
         )
     
     return {

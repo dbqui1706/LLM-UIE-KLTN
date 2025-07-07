@@ -10,8 +10,8 @@ def create_generation_controls() -> Tuple:
             max_new_tokens = gr.Slider(
                 minimum=50,
                 maximum=2048,
-                value=512,
-                step=50,
+                value=128,
+                step=2,
                 label="Max New Tokens",
                 info="Maximum number of tokens to generate"
             )
@@ -19,7 +19,7 @@ def create_generation_controls() -> Tuple:
             temperature = gr.Slider(
                 minimum=0.0,
                 maximum=2.0,
-                value=0.1,
+                value=0.01,
                 step=0.1,
                 label="Temperature",
                 info="Controls randomness (0.0 = deterministic, higher = more creative)"
@@ -38,7 +38,7 @@ def create_generation_controls() -> Tuple:
             top_k = gr.Slider(
                 minimum=1,
                 maximum=100,
-                value=50,
+                value=0,
                 step=5,
                 label="Top-k",
                 info="Consider only top-k tokens for sampling"
@@ -75,7 +75,7 @@ def create_generation_controls() -> Tuple:
             
             do_sample = gr.Checkbox(
                 label="Enable Sampling",
-                value=True,
+                value=False,
                 info="Use sampling instead of greedy decoding"
             )
             
@@ -111,7 +111,7 @@ def create_schema_inputs() -> Tuple:
 
         relation_types_input = gr.Textbox(
             label="Relation Types",
-            placeholder="works_at, located_in, published_in...",
+            placeholder="works at, located in, published in...",
             info="Comma-separated list"
         )
 
