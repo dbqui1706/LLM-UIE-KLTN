@@ -2,6 +2,7 @@ from typing import Tuple, Dict
 from .base import BaseHandler
 import time
 import os
+from ...utils.cache_manager import get_cache
 
 # Import with error handling
 try:
@@ -12,6 +13,13 @@ try:
 except ImportError as e:
     PIPELINE_AVAILABLE = False
 
+class DocumentCache:
+    def __init__(self, content, metadata, processing_time):
+        self.content = content
+        self.metadata = metadata
+        self.processing_time = processing_time
+        self.success = True
+
 class DocumentProcessingHandler(BaseHandler):
     """Handler chuyên biệt cho document processing"""
     
@@ -19,6 +27,7 @@ class DocumentProcessingHandler(BaseHandler):
         super().__init__(context)
         self.document_processor = None
         self.document_chunker = None
+        self.cache = get_cache()
     
     def process_document_upload(self, file, processing_mode: str, use_gpu: bool, 
                            enable_ocr: bool, enable_table_structure: bool,
@@ -38,27 +47,39 @@ class DocumentProcessingHandler(BaseHandler):
         self._log_operation("Document processing", filename=file.name, mode=processing_mode)
         
         try:
-            # Initialize processor
-            self.document_processor = DocumentProcessor(
-                processing_mode=ProcessingMode(processing_mode),
-                use_gpu=use_gpu,
-                enable_ocr=enable_ocr,
-                enable_table_structure=enable_table_structure,
-                clean=enable_cleaning,
-                aggressive_clean=aggressive_clean,
-                max_workers=1
-            )
+            cached_doc = self.cache.get_cached_document(file.name)
+            if cached_doc and self._is_processing_config_same(cached_doc, processing_mode, use_gpu, enable_ocr, enable_table_structure, enable_cleaning, aggressive_clean):
+                result = DocumentCache(
+                    content=cached_doc['content'],
+                    metadata=cached_doc['metadata'],
+                    processing_time= 0.1
+                )
+            else: 
+                self.logger.info("🔄 Processing document fresh")
+                
+                # initialize processor
+                self.document_processor = DocumentProcessor(
+                    processing_mode=ProcessingMode(processing_mode),
+                    use_gpu=use_gpu,
+                    enable_ocr=enable_ocr,
+                    enable_table_structure=enable_table_structure,
+                    clean=enable_cleaning,
+                    aggressive_clean=aggressive_clean,
+                    max_workers=1
+                )
+                
+                # process document
+                result = self.document_processor.process_single_document(file.name)
+                
+                if not result.success:
+                    return self._create_error_response(result.error_message, "Document Processing") + ("",)
+                
+                # cache processed document
+                self.cache.cache_document(file.name, result.content, result.metadata)
+                
+                self.logger.info(f"✅ Document processed in {result.processing_time:.2f}s")
             
-            # Process document
-            start_time = time.time()
-            result = self.document_processor.process_single_document(file.name)
-            
-            if not result.success:
-                return self._create_error_response(result.error_message, "Document Processing") + ("",)
-            
-            self.logger.info(f"✅ Document processed in {result.processing_time:.2f}s")
-            
-            # Handle chunking
+            # chunking
             chunks, chunks_preview = self._handle_chunking(
                 enable_chunking, result, chunking_strategy, chunk_size, 
                 chunk_overlap, task_type
@@ -66,7 +87,7 @@ class DocumentProcessingHandler(BaseHandler):
             download_file = None
             if chunks:
                 download_file = self._create_chunks_file(chunks)
-            # Create processing result
+           
             processing_result = self._build_processing_result(
                 file, result, processing_mode, use_gpu, enable_ocr, 
                 enable_table_structure, enable_cleaning, aggressive_clean,
@@ -89,7 +110,7 @@ class DocumentProcessingHandler(BaseHandler):
         if not enable_chunking or not result.content:
             return [], "Chunking disabled"
         
-        self.logger.info(f"🔄 Starting chunking with strategy: {chunking_strategy}")
+        self.logger.info(f"🔄 Chunking with current settings: {chunking_strategy}, size={chunk_size}, overlap={chunk_overlap}")
         
         # Create chunking config
         chunking_config = ChunkingConfig(
@@ -233,3 +254,12 @@ class DocumentProcessingHandler(BaseHandler):
         
         temp_file.close()
         return temp_file.name
+    
+    def _is_processing_config_same(self, cached_doc: dict, processing_mode: str, use_gpu: bool, 
+                                 enable_ocr: bool, enable_table_structure: bool, 
+                                 enable_cleaning: bool, aggressive_clean: bool) -> bool:
+        """✅ Check if processing config matches cached version"""
+        cached_metadata = cached_doc.get('metadata', {})
+        
+        current_mode = cached_metadata.get('processing_mode')
+        return current_mode == processing_mode

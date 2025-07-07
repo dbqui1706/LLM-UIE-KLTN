@@ -3,6 +3,7 @@ import re
 from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass
 from enum import Enum
+from ..utils.cache_manager import get_cache
 
 # LangChain imports with error handling
 try:
@@ -42,7 +43,6 @@ logger = logging.getLogger(__name__)
 
 
 class ChunkingStrategy(Enum):
-    """Các strategy chunking khác nhau"""
     RECURSIVE = "recursive"
     SENTENCE = "sentence"
     TOKEN = "token"
@@ -88,8 +88,7 @@ class DocumentChunker:
         self.splitter = None
         self.semantic_model = None
         self._strategy_cache = {}  # ✅ Cache cho splitters
-
-        # Initialize splitter
+        self.cache = get_cache()
         self._initialize_splitter()
         
         logger.info(f"✅ Initialized DocumentChunker with strategy: {self.config.strategy.value}")
@@ -163,7 +162,6 @@ class DocumentChunker:
                 chunk_size=self.config.chunk_size,
                 chunk_overlap=self.config.chunk_overlap,
                 language="english",
-                preserve_sentences=self.config.preserve_sentences
             )
             logger.info(f"📏 NLTK sentence splitter: chunk_size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
         except Exception as e:
@@ -192,15 +190,23 @@ class DocumentChunker:
 
         try:
             # Load model if not cached
-            if not self.semantic_model:
+            model_key = f"semantic_model_{self.config.model_name}"
+            cached_model = self.cache.get_cached_model(model_key)
+            
+            if cached_model:
+                self.semantic_model = cached_model
+            else:
+                # Load và cache model
+                logger.info(f"🔄 Loading semantic model: {self.config.model_name}")
                 self.semantic_model = SentenceTransformer(self.config.model_name)
+                self.cache.cache_model(model_key, self.semantic_model)
 
             self.splitter = SentenceTransformersTokenTextSplitter(
                 model_name=self.config.model_name,
                 chunk_overlap=self.config.chunk_overlap,
                 tokens_per_chunk=self.config.chunk_size,
             )
-            logger.info(f"📏 Semantic splitter: tokens_per_chunk={self.config.chunk_size}")
+            logger.info(f"📏 Semantic splitter ready: tokens_per_chunk={self.config.chunk_size}")
         except Exception as e:
             logger.warning(f"❌ Semantic splitter failed: {e}, falling back to recursive")
             self._init_recursive_splitter()
@@ -220,8 +226,6 @@ class DocumentChunker:
 
     def _init_hybrid_splitter(self):
         """✅ Fixed hybrid approach - không override splitter"""
-        # Hybrid sẽ được handle trong _hybrid_chunking method
-        # Ở đây chỉ init recursive làm base
         self._init_recursive_splitter()
         logger.info("📏 Hybrid splitter initialized (uses multiple strategies)")
 
@@ -272,56 +276,6 @@ class DocumentChunker:
             logger.error(f"❌ Chunking failed: {e}")
             return []
 
-
-    # def _backup_config(self) -> Dict[str, Any]:
-    #     """Backup current config"""
-    #     return {
-    #         'chunk_size': self.config.chunk_size,
-    #         'chunk_overlap': self.config.chunk_overlap,
-    #         'strategy': self.config.strategy
-    #     }
-
-    # def _restore_config(self, backup: Dict[str, Any]):
-    #     """Restore config from backup"""
-    #     self.config.chunk_size = backup['chunk_size']
-    #     self.config.chunk_overlap = backup['chunk_overlap']
-    #     self.config.strategy = backup['strategy']
-
-    # def _adjust_config_for_task(self, task_type: str):
-        """✅ Fixed config adjustment với proper re-initialization"""
-        
-        task_configs = {
-            "ner": {
-                "chunk_size": 250,
-                "chunk_overlap": 30,
-            },
-            "re": {
-                "chunk_size": 350,
-                "chunk_overlap": 50,
-            },
-            "ee": {
-                "chunk_size": 400,
-                "chunk_overlap": 70,
-            },
-            "balanced": {
-                "chunk_size": 300,
-                "chunk_overlap": 50,
-            }
-        }
-
-        task_config = task_configs.get(task_type, task_configs["balanced"])
-        
-        # ✅ Check if config actually changed
-        config_changed = False
-        for key, value in task_config.items():
-            if hasattr(self.config, key) and getattr(self.config, key) != value:
-                setattr(self.config, key, value)
-                config_changed = True
-
-        # ✅ Only re-initialize if config changed
-        if config_changed:
-            logger.info(f"🔄 Config adjusted for {task_type}: chunk_size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
-            self._initialize_splitter()
 
     def _perform_chunking(self, content: str) -> List[str]:
         """✅ Perform chunking với strategy-specific logic"""
