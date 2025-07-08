@@ -17,7 +17,6 @@ class HandlerFactory:
     
     @classmethod
     def create_handler(cls, handler_type: str, context) -> BaseHandler:
-        """Create single handler"""
         if handler_type not in cls._handler_classes:
             raise ValueError(f"Unknown handler type: {handler_type}")
         
@@ -25,7 +24,6 @@ class HandlerFactory:
     
     @classmethod
     def create_all_handlers(cls, context) -> Dict[str, BaseHandler]:
-        """Create all handlers"""
         return {
             name: handler_class(context) 
             for name, handler_class in cls._handler_classes.items()
@@ -38,7 +36,6 @@ class EventHandlers:
         self.context = context
         self._handlers = HandlerFactory.create_all_handlers(context)
     
-    # Delegate methods to appropriate handlers
     def load_sample_text(self, sample_name: str) -> str:
         return self._handlers['text_extraction'].load_sample_text(sample_name)
     

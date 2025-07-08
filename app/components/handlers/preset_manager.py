@@ -3,8 +3,6 @@ from .base import BaseHandler
 from ..presets import GenerationPresets
 
 class PresetManager(BaseHandler):
-    """Handler chuyên biệt cho generation presets"""
-    
     def apply_generation_preset(self, preset_name: str, *current_values) -> Tuple:
         """Apply generation parameter preset"""
         self._log_operation("Apply preset", preset=preset_name)

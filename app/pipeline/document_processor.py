@@ -7,9 +7,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 from pathlib import Path
 
-# Add parent directory to path
-
-
 from .memory import MemoryManager
 from .config import ProcessingMode, ProcessingStats, DocumentResult, SupportedFormat
 from .processing import clean_docling_output, quick_clean_metadata
@@ -38,7 +35,7 @@ class DocumentProcessor:
             artifacts_path: Optional[str] = None,
             enable_ocr: bool = False,
             enable_table_structure: bool = False,
-            max_workers: int = 2,
+            max_workers: int = 1,
             # cleaning
             clean: bool = True,
             aggressive_clean: bool = True

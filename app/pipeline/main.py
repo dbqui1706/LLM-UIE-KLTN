@@ -4,7 +4,7 @@ sys.path.append(str(Path(__file__).resolve().parent))
 
 from .config import ProcessingMode
 from .document_processor import DocumentProcessor
-from .chunking import DocumentChunker, ChunkingConfig, ChunkingStrategy, ChunkingPresets
+from .chunking import DocumentChunker, ChunkingConfig, ChunkingStrategy
 import logging
 
 

@@ -192,10 +192,9 @@ def _create_chunking_options():
                 "sentence",
                 "recursive", 
                 "markdown",
-                "markdown_header",
                 "semantic",
-                "spacy",
-                "hybrid"
+                # "spacy",
+                # "hybrid"
             ],
             label="Chunking Strategy",
             value="sentence",
@@ -220,34 +219,12 @@ def _create_chunking_options():
                 label="Chunk Overlap",
                 info="Overlap between chunks"
             )
-        
-        with gr.Row():
-            use_task_optimization = gr.Checkbox(
-                label="Use Task Optimization",
-                value=False,
-                info="Override settings above with task-specific values"
-            )
-            
-            task_type = gr.Dropdown(
-                choices=["balanced", "ner", "re", "ee"],
-                label="Task Type",
-                value="balanced",
-                info="Only used if task optimization enabled",
-                visible=False  # Hidden by default
-            )
-        
-        use_task_optimization.change(
-            fn=lambda x: gr.update(visible=x),
-            inputs=[use_task_optimization],
-            outputs=[task_type]
-        )
-    
+
     return {
         'enable_chunking': enable_chunking,
         'chunking_strategy': chunking_strategy,
         'chunk_size': chunk_size,
         'chunk_overlap': chunk_overlap,
-        'task_type': task_type
     }
 
 

@@ -2,6 +2,7 @@ from typing import Dict, Any
 from .factory import HandlerFactory
 import logging
 import gradio as gr
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,6 @@ class TabEventHandlers:
             inputs['chunking_options']['chunking_strategy'],
             inputs['chunking_options']['chunk_size'],
             inputs['chunking_options']['chunk_overlap'],
-            inputs['chunking_options']['task_type'],
             # Generation parameters
             *inputs['gen_controls'][:9]
         ]
@@ -235,7 +235,7 @@ class EventSetupManager:
         )
     
     def _setup_chunk_extraction_tab(self, components: Dict[str, Any]):
-        """Setup legacy chunk extraction tab"""
+        """Setup chunk extraction tab"""
         inputs = components['inputs']
         outputs = components['outputs']
         
@@ -256,25 +256,8 @@ def setup_event_handlers(demo, components: Dict[str, Any], context):
     
     return manager
 
-
-# Convenience functions để maintain backward compatibility
-def setup_text_extraction_events(components: Dict[str, Any], handlers: Dict[str, Any]):
-    """Setup events text extraction tab"""
-    tab_handlers = TabEventHandlers(handlers)
-    tab_handlers.setup_text_extraction_tab(components)
-
-
-def setup_document_processing_events(components: Dict[str, Any], handlers: Dict[str, Any]):
-    """Setup events cho document processing tab"""
-    tab_handlers = TabEventHandlers(handlers)
-    tab_handlers.setup_document_processing_extraction_tab(components)
-
-
-# Export functions để sử dụng trong main
 __all__ = [
     'setup_event_handlers',
     'EventSetupManager', 
     'TabEventHandlers',
-    'setup_text_extraction_events',
-    'setup_document_processing_events'
 ]

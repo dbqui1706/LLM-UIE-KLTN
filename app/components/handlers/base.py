@@ -1,4 +1,3 @@
-# demo2/components/handlers/base.py
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Tuple, Optional
 import logging
@@ -12,8 +11,11 @@ class BaseHandler(ABC):
     
     def __init__(self, context):
         self.context = context
+        self.model = context.model if hasattr(context, 'model') else None
         self.logger = logging.getLogger(self.__class__.__name__)
     
+    
+
     def _log_operation(self, operation: str, **kwargs):
         """Log operation với details"""
         self.logger.info(f"🔄 {operation} - {kwargs}")

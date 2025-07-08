@@ -1,6 +1,6 @@
 import gradio as gr
 from .generation_controls import create_generation_controls, create_schema_inputs
-from demo2.utils.sample import get_sample_texts
+from app.utils.sample import get_sample_texts
 
 def text_extraction_tab():
     sample_texts = get_sample_texts()
