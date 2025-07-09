@@ -73,7 +73,6 @@ def aggregate_chunk_results(all_results: List[Dict], task: str, filter_duplicate
 def format_extraction_result(result, task: str, text: str, gen_params: Dict) -> Dict:
     """Format extraction result to dict"""
     try:
-        # Try different formatting strategies
         formatters = [
             lambda r: r.to_dict() if hasattr(r, 'to_dict') else None,
             lambda r: r if isinstance(r, dict) else None,
