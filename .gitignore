@@ -17,3 +17,6 @@ scratch/
 
 *.log
 unsloth_compiled_cache/
+\nhuggingface_tokenizers_cache/
+ngrok-v3-stable-linux-amd64.tgz
+huggingface_tokenizers_cache/
