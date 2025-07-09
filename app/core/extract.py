@@ -8,17 +8,11 @@ class NER:
     """Named Entity Recognition result"""
     entity_type: str
     entity_mention: str
-    confidence: float = 0.9
-    start: Optional[int] = None
-    end: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             'entity_type': self.entity_type,
             'entity_mention': self.entity_mention,
-            'confidence': self.confidence,
-            'start': self.start,
-            'end': self.end
         }
 
     def to_json(self) -> str:
@@ -34,14 +28,12 @@ class RE:
     relation_type: str
     head_entity: str
     tail_entity: str
-    confidence: float = 0.9
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             'relation_type': self.relation_type,
             'head_entity': self.head_entity,
             'tail_entity': self.tail_entity,
-            'confidence': self.confidence
         }
 
     def to_json(self) -> str:
@@ -77,7 +69,6 @@ class EET:
     trigger: str
     trigger_type: str
     arguments: List[EEA] = field(default_factory=list)
-    confidence: float = 0.9
 
     def add_argument(self, role: str, entity: str):
         self.arguments.append(EEA(role, entity))
@@ -87,7 +78,6 @@ class EET:
             'trigger': self.trigger,
             'trigger_type': self.trigger_type,
             'arguments': [arg.to_dict() for arg in self.arguments],
-            'confidence': self.confidence
         }
 
     def to_json(self) -> str:

@@ -43,6 +43,16 @@ class ChunkExtractionHandler(BaseHandler):
                             num_chunks=len(chunks), task=task, mode=mode, batch_size=batch_size)
 
         try:
+            gen_kwargs = {}
+            if generation_params:
+                param_names = [
+                    'max_new_tokens', 'temperature', 'top_p', 'top_k', 'do_sample', 
+                    'repetition_penalty', 'no_repeat_ngram_size', 'num_beams', 'early_stopping'
+                ]
+                
+                for i, value in enumerate(generation_params):
+                    if i < len(param_names):
+                        gen_kwargs[param_names[i]] = value
             result = self.context.extract_from_chunks(
                 task=task,
                 entity_types=entity_types,
@@ -50,10 +60,9 @@ class ChunkExtractionHandler(BaseHandler):
                 event_types=event_types,
                 argument_types=argument_types,
                 mode=mode,
-                batch_size=batch_size,
                 aggregate_results=aggregate_results,
                 filter_duplicates=filter_duplicates,
-                *generation_params
+                **gen_kwargs
             )
 
             if "error" in result:
@@ -64,4 +73,32 @@ class ChunkExtractionHandler(BaseHandler):
 
         except Exception as e:
             return self._create_error_response(str(e), "Chunk Extraction")
-    
+
+    def _create_chunk_extraction_summary(self, result: Dict) -> str:
+      """Create summary for chunk extraction results"""
+      
+      chunks_processed = result.get('chunks_processed', 0)
+      processing_time = result.get('processing_time', 0)
+      
+      # Get aggregated results
+      aggregated = result.get('aggregated_results', {})
+      
+      summary_parts = [
+          f"📦 Processed: {chunks_processed} chunks",
+          f"⏱️ Time: {processing_time:.2f}s"
+      ]
+      
+      # Add counts based on task
+      if 'entities' in aggregated:
+          count = len(aggregated['entities'])
+          summary_parts.append(f"🏷️ Entities: {count}")
+      
+      if 'relations' in aggregated:
+          count = len(aggregated['relations'])
+          summary_parts.append(f"🔗 Relations: {count}")
+      
+      if 'events' in aggregated:
+          count = len(aggregated['events'])
+          summary_parts.append(f"📅 Events: {count}")
+      
+      return " | ".join(summary_parts)

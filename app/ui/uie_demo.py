@@ -2,11 +2,13 @@ import logging
 import sys
 from pathlib import Path
 import time
+from pprint import pprint
 from tqdm.auto import tqdm
 from typing import Dict, List
 project_root = str(Path(__file__).parent.parent.parent)
 sys.path.append(project_root)
 from utils import *
+from app.core.base import LLamaModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,8 +20,8 @@ class UIEUi:
     def __init__(self):
         try:
             self.current_chunks = None
-            # self.model = LLamaModel(model_name=self.MODEL_NAME)  # Uncomment when model available
-            self.model = None  # For now
+            self.model = LLamaModel(model_name=self.MODEL_NAME)  # Uncomment when model available
+            # self.model = None
 
             self.load_status = "success" if (
                     self.model and hasattr(self.model, 'model') and self.model.model) else "failed"
@@ -45,13 +47,14 @@ class UIEUi:
 
         try:
             user_schema = prepare_schema(entity_types, relation_types, event_types, argument_types)
+
             gen_params = build_generation_params(**kwargs)
 
             # Extract using model or mock
-            result = self._extract_with_model_or_mock(text, task, user_schema, mode, gen_params)
-
+            result = self.model.extract(text=text, task=task, user_schema=user_schema, mode=mode, **gen_params)
+            pprint(result)
             logger.info(f"✅ Extraction completed for task: {task}")
-            return result
+            return format_extraction_result(result, task, text, gen_params)
 
         except Exception as e:
             logger.error(f"❌ Extraction failed: {e}")
@@ -103,13 +106,6 @@ class UIEUi:
         self.current_chunks = chunks
         logger.info(f"📦 Set {len(chunks)} chunks for processing")
 
-    def _extract_with_model_or_mock(self, text: str, task: str, user_schema: Dict, mode: str, gen_params: Dict) -> Dict:
-        if self.model and hasattr(self.model, 'extract'):
-            result = self.model.extract(text=text, task=task, user_schema=user_schema, mode=mode, **gen_params)
-            return format_extraction_result(result, task, text, gen_params)
-        else:
-            return create_mock_extraction_result(text, task, gen_params)
-
     def _validate_chunk_extraction(self, task: str) -> Dict:
         if not validate_chunk_extraction_task(task):
             return {"error": "Chunks extraction only supports NER, RE, or EE tasks (not ALL)"}
@@ -139,12 +135,9 @@ class UIEUi:
         chunk_id = chunk['metadata']['chunk_id']
 
         try:
-            if self.model and hasattr(self.model, 'extract'):
-                result = self.model.extract(text=chunk_text, task=task, user_schema=user_schema, mode=mode,
-                                            **gen_params)
-                chunk_result = format_chunk_extraction_result(result, task, chunk_id)
-            else:
-                chunk_result = create_mock_chunk_result(chunk_id, task)
+            result = self.model.extract(text=chunk_text, task=task, user_schema=user_schema, mode=mode,
+                                        **gen_params)
+            chunk_result = format_chunk_extraction_result(result, task, chunk_id)
 
             chunk_result['chunk_metadata'] = chunk['metadata']
             return chunk_result

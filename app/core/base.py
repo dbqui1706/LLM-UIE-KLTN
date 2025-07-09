@@ -1,6 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-
+from unsloth import FastLanguageModel
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 from abc import ABC, abstractmethod
@@ -8,6 +7,7 @@ from typing import Dict, List, Any, Optional, Union, Callable
 from dataclasses import dataclass
 import logging
 from enum import Enum
+from pprint import pprint
 
 from .prompt import PromptManager
 from .parser import TaskParser  
@@ -106,23 +106,32 @@ class BaseModel(ABC):
                            temperature: float = 0.1, **kwargs) -> str:
         """Generate response using the loaded model"""
         if not self.model or not self.tokenizer:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+          raise RuntimeError("Model not loaded. Call load_model() first.")
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
+            # ✅ Prepare generation parameters
+            generation_params = {
+                'input_ids': inputs.input_ids,
+                'attention_mask': inputs.attention_mask,
+                'max_new_tokens': max_new_tokens,
+                'temperature': temperature,
+                'pad_token_id': self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
+                'eos_token_id': self.tokenizer.eos_token_id,
+            }
+            
+            # ✅ Set defaults only if not provided in kwargs
+            if 'do_sample' not in kwargs:
+                generation_params['do_sample'] = True
+            if 'top_p' not in kwargs:
+                generation_params['top_p'] = 0.8
+                
+            # ✅ Update with user-provided kwargs (overwrites defaults)
+            generation_params.update(kwargs)
+
             with torch.no_grad():
-                outputs = self.model.generate(
-                    input_ids=inputs.input_ids,
-                    attention_mask=inputs.attention_mask,
-                    max_new_tokens=max_new_tokens,
-                    temperature=temperature,
-                    do_sample=True,
-                    top_p=0.9,
-                    pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
-                    eos_token_id=self.tokenizer.eos_token_id,
-                    **kwargs
-                )
+                outputs = self.model.generate(**generation_params)
 
             response = self.tokenizer.decode(
                 outputs[0][inputs.input_ids.shape[1]:],
@@ -159,12 +168,12 @@ class LLamaModel(BaseModel):
             logger.info(f"Loading model {self.model_name}...")
 
             if torch.cuda.is_available():
-                from unsloth import FastLanguageModel
                 self.model, self.tokenizer = FastLanguageModel.from_pretrained(
                     model_name=self.model_name,
                     dtype=None,
-                    max_seq_length=1024,
+                    max_seq_length=2048,
                 )
+                self.model = FastLanguageModel.for_inference(self.model)
                 logger.info(f"Model loaded on GPU")
             else:
                 self.tokenizer = AutoTokenizer.from_pretrained(
@@ -222,6 +231,7 @@ class LLamaModel(BaseModel):
 
         # Generate and format prompt
         prompt = self.prompter.create_prompt(task_type.value, text, task_schema, mode)
+        pprint(f"\n============== Prompt ==============  \n{prompt}\n")
         formatted_prompt = self.format_chat_template(system_prompt, prompt)
 
         # Generate response

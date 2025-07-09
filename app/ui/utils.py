@@ -129,7 +129,6 @@ def format_chunk_extraction_result(result, task: str, chunk_id: int) -> Dict:
 
     return formatted
 
-
 def create_mock_extraction_result(text: str, task: str, gen_params: Dict) -> Dict:
     """Create mock extraction result for demo"""
     result = {
