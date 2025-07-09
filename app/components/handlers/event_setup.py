@@ -160,7 +160,7 @@ class TabEventHandlers:
             inputs['chunks_info'],
             outputs['download_chunks_btn']
         ]
-    
+
     def _get_chunk_extraction_inputs(self, inputs: Dict) -> list:
         """Get inputs for chunk extraction"""
         return [
@@ -250,7 +250,7 @@ class EventSetupManager:
 
 
 def setup_event_handlers(demo, components: Dict[str, Any], context):
-    """Main function setup event handlers"""
+    """Method chính để setup tất cả event handlers"""
     manager = EventSetupManager(context)
     manager.setup_all_events(demo, components)
     

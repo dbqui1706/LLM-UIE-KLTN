@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
@@ -10,19 +9,9 @@ from langchain_text_splitters import (
     MarkdownTextSplitter
 )
 
-
-# Sentence Transformers import with error handling
-try:
-    from sentence_transformers import SentenceTransformer
-
-    SENTENCE_TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    SENTENCE_TRANSFORMERS_AVAILABLE = False
-
 # NLTK import with error handling
 try:
     import nltk
-
     try:
         nltk.data.find('tokenizers/punkt')
     except LookupError:
@@ -59,29 +48,63 @@ class ChunkingConfig:
             raise ValueError("chunk_overlap must be less than chunk_size")
 
 
+class SentenceTransformersTokenTextSplitterCustom(SentenceTransformersTokenTextSplitter):
+    def __init__(
+            self,
+            chunk_overlap: int = 50,
+            model_name: str = "sentence-transformers/all-mpnet-base-v2",
+            model: Optional[Any] = None,
+            tokens_per_chunk: Optional[int] = None,
+            **kwargs: Any,
+    ) -> None:
+        if model is not None:
+            from langchain_text_splitters.base import TextSplitter
+            TextSplitter.__init__(self, **kwargs, chunk_overlap=chunk_overlap)
+
+            logger.info(f"🎯 Using provided cached model")
+            self.model_name = model_name
+            self._model = model
+            self.tokenizer = self._model.tokenizer
+            self._initialize_chunk_configuration(tokens_per_chunk=tokens_per_chunk)
+
+        else:
+            logger.info(f"🔄 Loading model via parent class: {model_name}")
+            super().__init__(
+                chunk_overlap=chunk_overlap,
+                model_name=model_name,
+                tokens_per_chunk=tokens_per_chunk,
+                **kwargs
+            )
+
 class DocumentChunker:
     def __init__(self, config: ChunkingConfig = None):
         self.config = config or ChunkingConfig()
         self.splitter = None
-        self.markdown_splitter = None
 
-        # Import cache manager
+        # caching
         from ..utils.cache_manager import get_cache
         self.cache = get_cache()
 
-        self._initialize_splitter()
-        logger.info(f"✅ DocumentChunker ready: {self.config.strategy.value}")
-
+        cached_chunker = self.cache.get_cached_chunker(self.config)
+        if cached_chunker:
+            self.splitter = cached_chunker.splitter
+            logger.info(f"♻️ Reused cached splitter: {self.config.strategy.value}")
+        else:
+            self._initialize_splitter()
+            # Caching the splitter instance
+            self.cache.cache_chunker(self.config, self)
+            logger.info(f"✅ DocumentChunker ready: {self.config.strategy.value}")
     def _initialize_splitter(self):
+        strategy_initializers = {
+            ChunkingStrategy.SEMANTIC: self._init_semantic_splitter,
+            ChunkingStrategy.SENTENCE: lambda: self._init_sentence_splitter() if NLTK_AVAILABLE else self._init_recursive_splitter(),
+            ChunkingStrategy.MARKDOWN: self._init_markdown_splitter,
+            ChunkingStrategy.RECURSIVE: self._init_recursive_splitter
+        }
+
         try:
-            if self.config.strategy == ChunkingStrategy.SEMANTIC:
-                self._init_semantic_splitter()
-            elif self.config.strategy == ChunkingStrategy.SENTENCE and NLTK_AVAILABLE:
-                self._init_sentence_splitter()
-            elif self.config.strategy == ChunkingStrategy.MARKDOWN:  # ✅ Add markdown
-                self._init_markdown_splitter()
-            else:
-                self._init_recursive_splitter()
+            initializer = strategy_initializers.get(self.config.strategy, self._init_recursive_splitter)
+            initializer()
         except Exception as e:
             logger.warning(f"❌ Failed to init {self.config.strategy.value}, using recursive: {e}")
             self._init_recursive_splitter()
@@ -104,20 +127,23 @@ class DocumentChunker:
         logger.info(f"📏 Sentence splitter: size={self.config.chunk_size}, overlap={self.config.chunk_overlap}")
 
     def _init_semantic_splitter(self):
-        """Initialize semantic splitter with model caching"""
-        if not SENTENCE_TRANSFORMERS_AVAILABLE:
-            raise ImportError("SentenceTransformers not available")
+        model_name = self.config.model_name
+        cached_model = self.cache.get_cached_model(model_name)
 
-        # # Check cache for model
-        # model_key = f"semantic_model_{self.config.model_name}"
-        # cached_model = self.cache.get_cached_model(model_key)
-        #
-        # if not cached_model:
-        #     logger.info(f"🔄 Loading semantic model: {self.config.model_name}")
-        #     model = SentenceTransformer(self.config.model_name)
-        #     self.cache.cache_model(model_key, model)
+        if cached_model:
+            model = cached_model
+            logger.info(f"♻️ Using cached model: {model_name}")
+        else:
+            logger.info(f"🔄 Loading semantic model: {model_name}")
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer(model_name)
 
-        self.splitter = SentenceTransformersTokenTextSplitter(
+            # Cache the model
+            self.cache.cache_model(model_name, model)
+            logger.info(f"✅ Model cached: {model_name}")
+
+        self.splitter = SentenceTransformersTokenTextSplitterCustom(
+            model=model,
             model_name=self.config.model_name,
             chunk_overlap=self.config.chunk_overlap,
             tokens_per_chunk=self.config.chunk_size
@@ -125,11 +151,9 @@ class DocumentChunker:
         logger.info(f"📏 Semantic splitter ready: tokens={self.config.chunk_size}")
 
     def _init_markdown_splitter(self):
-        """✅ Initialize markdown splitter - simple version"""
         self.splitter = MarkdownTextSplitter(
             chunk_size=self.config.chunk_size,
             chunk_overlap=self.config.chunk_overlap,
-            separators=["\n\n", "\n", "# ", "## ", "### ", "#### ", "##### ", "###### ", "* ", "- ", "> ", "  "]
         )
 
         logger.info(f"📏 Markdown splitter ready: size={self.config.chunk_size} overlap={self.config.chunk_overlap}")

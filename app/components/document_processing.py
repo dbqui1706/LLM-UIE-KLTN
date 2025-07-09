@@ -179,7 +179,6 @@ def _create_cleaning_options():
 
 
 def _create_chunking_options():
-    """Create chunking options section"""
     with gr.Accordion("✂️ Chunking Options", open=True):
         enable_chunking = gr.Checkbox(
             label="Enable Chunking",
@@ -229,7 +228,6 @@ def _create_chunking_options():
 
 
 def _create_extraction_task_controls():
-    """Create task and mode selection controls for extraction"""
     with gr.Accordion("🎯 Extraction Configuration", open=True):
         # Task selection
         task_dropdown = gr.Dropdown(

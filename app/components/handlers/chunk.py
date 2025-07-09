@@ -3,10 +3,8 @@ from .base import BaseHandler
 import time
 
 class ChunkExtractionHandler(BaseHandler):
-    """Handler chuyên biệt cho chunk extraction"""
-    
+
     def refresh_chunks_info(self) -> str:
-        """Refresh chunks information display"""
         chunks = getattr(self.context, 'current_chunks', [])
         
         if not chunks:

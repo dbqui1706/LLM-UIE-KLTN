@@ -1,7 +1,5 @@
-from typing import Tuple, Dict
+from typing import Tuple
 from .base import BaseHandler
-import time
-import os
 from .utils import (
     create_chunks_file,
     create_chunks_preview,
@@ -23,12 +21,11 @@ class DocumentCache:
 
 
 class DocumentProcessingHandler(BaseHandler):
-    """Handler chuyên biệt cho document processing"""
 
     def __init__(self, context):
         super().__init__(context)
         self.document_processor = None
-        self.document_chunker = None
+        # self.document_chunker = None
         self.cache = get_cache()
 
     def process_document_upload(self, file, processing_mode: str, use_gpu: bool,
@@ -123,21 +120,24 @@ class DocumentProcessingHandler(BaseHandler):
             max_chunk_size=chunk_size * 2
         )
 
-        # Initialize chunker
-        self.document_chunker = DocumentChunker(chunking_config)
+        # check cache for existing chunker
+        document_chunker = self.cache.get_cached_chunker(chunking_config)
+        if not document_chunker:
+            self.logger.info(f"🔄 Creating new chunker: {chunking_strategy}")
+            document_chunker = DocumentChunker(chunking_config)
 
-        # Perform chunking
-        chunks = self.document_chunker.chunk_document(
+        # chunking
+        chunks = document_chunker.chunk_document(
             content=result.content,
             metadata=result.metadata
         )
 
         self.logger.info(f"✅ Created {len(chunks)} chunks")
 
-        # Save chunks to context
+        # save chunks to context
         self.context.set_current_chunks(chunks)
 
-        # Create preview
+        # preview
         chunks_preview = create_chunks_preview(chunks)
 
         return chunks, chunks_preview

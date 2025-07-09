@@ -6,8 +6,7 @@ from .chunk import ChunkExtractionHandler
 from .preset_manager import PresetManager
 
 class HandlerFactory:
-    """Factory để tạo và quản lý handlers"""
-    
+
     _handler_classes = {
         'text_extraction': TextExtractionHandler,
         'document_processing': DocumentProcessingHandler,
@@ -30,8 +29,6 @@ class HandlerFactory:
         }
 
 class EventHandlers:
-    """Wrapper class để maintain backward compatibility"""
-    
     def __init__(self, context):
         self.context = context
         self._handlers = HandlerFactory.create_all_handlers(context)
