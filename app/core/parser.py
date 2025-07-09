@@ -1,7 +1,7 @@
 from typing import List, Optional, Callable, Dict
 import logging
 from abc import ABC, abstractmethod
-from extract import NER, RE, EEA, EET, EE
+from .extract import NER, RE, EEA, EET, EE
 
 logger = logging.getLogger(__name__)
 

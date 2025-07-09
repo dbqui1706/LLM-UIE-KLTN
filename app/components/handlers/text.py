@@ -27,20 +27,25 @@ class TextExtractionHandler(BaseHandler, MockResultMixin):
         self._log_operation("Text extraction", task=task, mode=mode, text_length=len(text))
         
         try:
-            # Extract information
+            gen_param_names = [
+                'max_new_tokens', 'temperature', 'top_p', 'top_k', 'do_sample',
+                'repetition_penalty', 'no_repeat_ngram_size', 'num_beams', 'early_stopping'
+            ]
+
+            # Build kwargs dict from generation parameters
+            gen_kwargs = {}
+            for i, param_name in enumerate(gen_param_names):
+                if i < len(generation_params):
+                    gen_kwargs[param_name] = generation_params[i]
             result = None
-            if hasattr(self.context, 'extract_information') and self.context.model:
-                result = self.context.extract_information(
-                    text=text, task=task, entity_types=entity_types,
-                    relation_types=relation_types, event_types=event_types,
-                    argument_types=argument_types, mode=mode, *generation_params
-                )
+            result = self.context.extract_information(
+                text=text, task=task, entity_types=entity_types,
+                relation_types=relation_types, event_types=event_types,
+                argument_types=argument_types, mode=mode, **gen_kwargs
+            )
                 
-                if "error" in result:
-                    return self._create_error_response(result['error'], "Text Extraction")
-            else:
-                # Mock result for demo
-                self.logger.warning("Model not available, creating mock results")
+            if "error" in result:
+                return self._create_error_response(result['error'], "Text Extraction")
             
             # Create summary
             summary = create_extraction_summary(result)
