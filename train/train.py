@@ -133,8 +133,8 @@ if __name__ == '__main__':
     logger.info(f"Training/evaluation parameters {training_args}")
 
     wandb.init(
-        entity='phuongnamdpn2k2',
-        project='htsc_finetuning',
+        entity='quid',
+        project='llm-multitask_unslothai',
         name='seaLLM',
         config={
             'data_args': vars(data_args),
