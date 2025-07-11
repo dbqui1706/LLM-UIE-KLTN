@@ -1,7 +1,7 @@
 # app/utils/data_extractor.py
 import logging
 from typing import Dict, List, Any, Optional
-
+from app.core.extract import UIEResult, NER, RE, EE
 logger = logging.getLogger(__name__)
 
 
@@ -33,9 +33,13 @@ class ExtractionDataExtractor:
                 return ExtractionDataExtractor._extract_from_aggregated(data['aggregated_results'])
             
             # Case 3: Text extraction results (single task format)
-            if isinstance(data, dict):
-                logger.info("📝 Found text extraction format")
-                return ExtractionDataExtractor._extract_from_text_format(data)
+            if hasattr(data, 'to_dict'):
+                data_dict = data.to_dict()
+                result = {'entities': [], 'relations': [], 'events': []}
+                result['entities'] = data_dict.get('entities', [])
+                result['relations'] = data_dict.get('relations', [])
+                result['events'] = data_dict.get('events', [])
+                return result
             
             # Case 4: List format (direct from model)
             if isinstance(data, list):

@@ -27,67 +27,66 @@ class VisualizationHandler(BaseHandler):
         """Generate graph visualization from extraction results"""
         
         try:
-            raw_data = self._get_extraction_data(data_source, json_file)
-            if not raw_data:
-                return self._create_error_response("No extraction data available", "Visualization")
-            
-            print(f"📥 Raw data received: {type(raw_data)} - {str(raw_data)[:200]}...")
-            
-            # Extract and normalize UIE data using the smart extractor
-            normalized_data = extract_uie_data(raw_data)
-            print(f"🔄 Normalized data: {normalized_data}")
-            
-            if not any(normalized_data.values()):
-                return self._create_empty_visualization(), self._create_stats_markdown({})
-            
-            # Build graph from normalized data
-            self.current_graph = self.graph_builder.create_graph_from_results(normalized_data)
-            self.current_results = normalized_data
-            
-            print(f"✅ Created Graph with {len(self.current_graph.nodes)} nodes, {len(self.current_graph.edges)} edges!")
-            
-            if len(self.current_graph.nodes) == 0:
-                return self._create_empty_visualization(), self._create_stats_markdown({})
-            
-            # Prepare visualization settings
-            viz_settings = {
-                'graph_layout': graph_layout,
-                'show_entities': show_entities,
-                'show_relations': show_relations,
-                'show_events': show_events,
-                'node_size': node_size,
-                'edge_width': edge_width,
-                'physics_enabled': physics_enabled,
-                'show_buttons': show_buttons,
-                'entity_color': entity_color,
-                'relation_color': relation_color,
-                'event_color': event_color,
-                'background_color': background_color
-            }
-            
-            # Create visualization
-            html_content = self.graph_visualizer.create_interactive_graph(
-                self.current_graph, **viz_settings
-            )
+          raw_data = self._get_extraction_data(data_source, json_file)
+          if not raw_data:
+              return self._create_error_response("No extraction data available", "Visualization")
+          
+          print(f"📥 Raw data received: {type(raw_data)} - {str(raw_data)[:200]}...")
+          
+          # Extract and normalize UIE data using the smart extractor
+          normalized_data = extract_uie_data(raw_data)
+          print(f"🔄 Normalized data: {normalized_data}")
+          
+          if not any(normalized_data.values()):
+              return self._create_empty_visualization(), self._create_stats_markdown({})
+          
+          # Build graph from normalized data
+          self.current_graph = self.graph_builder.create_graph_from_results(normalized_data)
+          self.current_results = normalized_data
+          
+          print(f"✅ Created Graph with {len(self.current_graph.nodes)} nodes, {len(self.current_graph.edges)} edges!")
+          
+          if len(self.current_graph.nodes) == 0:
+              return self._create_empty_visualization(), self._create_stats_markdown({})
+          
+          # Prepare visualization settings
+          viz_settings = {
+              'graph_layout': graph_layout,
+              'show_entities': show_entities,
+              'show_relations': show_relations,
+              'show_events': show_events,
+              'node_size': node_size,
+              'edge_width': edge_width,
+              'physics_enabled': physics_enabled,
+              'show_buttons': show_buttons,
+              'entity_color': entity_color,
+              'relation_color': relation_color,
+              'event_color': event_color,
+              'background_color': background_color
+          }
+          
+          # Create visualization
+          html_content = self.graph_visualizer.create_interactive_graph(
+              self.current_graph, **viz_settings
+          )
 
-            print("✅ Set HTML content for graph!")
-            
-            # Calculate statistics
-            stats = calculate_graph_statistics(self.current_graph)
-            print("✅ Statisctics!")
+          print("✅ Set HTML content for graph!")
+          
+          # Calculate statistics
+          stats = calculate_graph_statistics(self.current_graph)
+          print("✅ Statisctics!")
 
-            stats_markdown = self._create_stats_markdown(stats)
-            print("✅ Mardown")
+          stats_markdown = self._create_stats_markdown(stats)
+          print("✅ Mardown")
 
-            self._log_operation("Visualization generated", 
-                              nodes=len(self.current_graph.nodes),
-                              edges=len(self.current_graph.edges))
-            
-            return html_content, stats_markdown
-            
+          self._log_operation("Visualization generated", 
+                            nodes=len(self.current_graph.nodes),
+                            edges=len(self.current_graph.edges))
+          
+          return html_content, stats_markdown
         except Exception as e:
-            logger.error(f"Visualization generation failed: {e}")
-            return self._create_error_response(str(e), "Visualization")
+          logger.error(f"Visualization generation failed: {e}")
+          return self._create_error_response(str(e), "Visualization")
     
     def export_current_graph(self, export_format: str) -> str:
         """Export current graph in specified format"""
