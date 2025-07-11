@@ -1,7 +1,6 @@
 # app/utils/data_extractor.py
 import logging
 from typing import Dict, List, Any, Optional
-from app.core.extract import UIEResult, NER, RE, EE
 logger = logging.getLogger(__name__)
 
 
