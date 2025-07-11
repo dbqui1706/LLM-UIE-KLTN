@@ -1,6 +1,7 @@
 # app/utils/graph_utils.py
 import networkx as nx
 from pyvis.network import Network
+import base64
 import json
 import tempfile
 from datetime import datetime
@@ -187,7 +188,6 @@ class GraphVisualizer:
     def create_interactive_graph(self, nx_graph: nx.Graph, **kwargs) -> str:
         """Create interactive PyVis graph from NetworkX graph"""
         try:
-
           # Extract settings
           layout = kwargs.get('graph_layout', 'force_atlas_2based')
           show_entities = kwargs.get('show_entities', True)
@@ -213,6 +213,7 @@ class GraphVisualizer:
               bgcolor=self.color_schemes['background'],
               font_color="black" if self._is_light_color(self.color_schemes['background']) else "white",
           )
+
           # Filter and add nodes
           filtered_graph = self._filter_graph(nx_graph, show_entities, show_relations, show_events)
           
@@ -266,8 +267,47 @@ class GraphVisualizer:
 
           return self._create_data_url_iframe(html_content)
         except Exception as e:
-          logger.error(f"❌ Visualization failed: {e}")
-          return self._create_fallback_html(nx_graph)
+          logger.error(f"❌ PyVis visualization failed: {e}")
+          import traceback
+          logger.error(f"Full traceback: {traceback.format_exc()}")
+          return None
+          
+    
+    def _create_data_url_iframe(self, html_content: str) -> str:
+        """Create iframe with data URL from HTML content"""
+        try:
+            # Encode as data URL
+            html_bytes = html_content.encode('utf-8')
+            html_b64 = base64.b64encode(html_bytes).decode('utf-8')
+            data_url = f"data:text/html;base64,{html_b64}"
+            
+            # Create iframe with data URL
+            iframe_html = f"""
+            <div style="width: 100%; height: 620px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: white;">
+                <iframe src="{data_url}" 
+                        width="100%" 
+                        height="100%" 
+                        frameborder="0"
+                        style="border: none;">
+                    Your browser does not support data URL iframes.
+                </iframe>
+            </div>
+            <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 12px; color: #666;">
+                🎮 Interactive graph: Drag nodes, scroll to zoom, pan to explore
+            </div>
+            """
+            
+            return iframe_html
+            
+        except Exception as e:
+            logger.error(f"❌ Data URL creation failed: {e}")
+            return f"""
+            <div style="padding: 20px; border: 2px solid #e74c3c; border-radius: 10px; background: #fdf2f2;">
+                <h3>❌ Data URL Method Failed</h3>
+                <p>Error: {e}</p>
+                <p>Falling back to direct HTML content...</p>
+            </div>
+            """
     
     def _create_data_url_iframe(self, html_content: str) -> str:
         """Create iframe with data URL from HTML content"""

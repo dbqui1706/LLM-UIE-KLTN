@@ -1,0 +1,179 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#3498db", "font": {"color": "black"}, "id": "entity_0", "label": "Luke Zettlemoyer", "shape": "dot", "size": 20.0, "title": "Entity: Luke Zettlemoyer"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_1", "label": "University of Washington", "shape": "dot", "size": 20.0, "title": "Entity: University of Washington"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_2", "label": "chatbot", "shape": "dot", "size": 20.0, "title": "Entity: chatbot"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_3", "label": "performance", "shape": "dot", "size": 20.0, "title": "Entity: performance"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_4", "label": "Guanaco", "shape": "dot", "size": 20.0, "title": "Entity: Guanaco"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_5", "label": "model", "shape": "dot", "size": 20.0, "title": "Entity: model"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_6", "label": "model architectures", "shape": "dot", "size": 20.0, "title": "Entity: model architectures"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_7", "label": "transformers", "shape": "dot", "size": 20.0, "title": "Entity: transformers"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_8", "label": "Hugging Face", "shape": "dot", "size": 20.0, "title": "Entity: Hugging Face"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_9", "label": "tensor", "shape": "dot", "size": 20.0, "title": "Entity: tensor"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_10", "label": "data type", "shape": "dot", "size": 20.0, "title": "Entity: data type"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_11", "label": "input", "shape": "dot", "size": 20.0, "title": "Entity: input"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_12", "label": "LoRA", "shape": "dot", "size": 20.0, "title": "Entity: LoRA"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_13", "label": "weights", "shape": "dot", "size": 20.0, "title": "Entity: weights"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_14", "label": "QLORA", "shape": "dot", "size": 20.0, "title": "Entity: QLORA"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_15", "label": "NormalFloat", "shape": "dot", "size": 20.0, "title": "Entity: NormalFloat"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_16", "label": "normal distribution", "shape": "dot", "size": 20.0, "title": "Entity: normal distribution"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_17", "label": "neural network weights", "shape": "dot", "size": 20.0, "title": "Entity: neural network weights"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_18", "label": "normal distributions", "shape": "dot", "size": 20.0, "title": "Entity: normal distributions"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_19", "label": "zero-mean", "shape": "dot", "size": 20.0, "title": "Entity: zero-mean"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_20", "label": "blocksize", "shape": "dot", "size": 20.0, "title": "Entity: blocksize"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_21", "label": "overhead", "shape": "dot", "size": 20.0, "title": "Entity: overhead"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_22", "label": "Optimizers", "shape": "dot", "size": 20.0, "title": "Entity: Optimizers"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_23", "label": "memory", "shape": "dot", "size": 20.0, "title": "Entity: memory"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_24", "label": "parameter", "shape": "dot", "size": 20.0, "title": "Entity: parameter"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_25", "label": "error", "shape": "dot", "size": 20.0, "title": "Entity: error"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_26", "label": "decoder", "shape": "dot", "size": 20.0, "title": "Entity: decoder"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_27", "label": "architectures", "shape": "dot", "size": 20.0, "title": "Entity: architectures"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_28", "label": "setup", "shape": "dot", "size": 20.0, "title": "Entity: setup"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_29", "label": "Alpaca", "shape": "dot", "size": 20.0, "title": "Entity: Alpaca"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_30", "label": "LLaMA", "shape": "dot", "size": 20.0, "title": "Entity: LLaMA"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_31", "label": "data", "shape": "dot", "size": 20.0, "title": "Entity: data"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_32", "label": "types", "shape": "dot", "size": 20.0, "title": "Entity: types"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_33", "label": "finetuning", "shape": "dot", "size": 20.0, "title": "Entity: finetuning"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_34", "label": "models", "shape": "dot", "size": 20.0, "title": "Entity: models"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_35", "label": "QLoRA", "shape": "dot", "size": 20.0, "title": "Entity: QLoRA"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_36", "label": "instruction", "shape": "dot", "size": 20.0, "title": "Entity: instruction"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_37", "label": "datasets", "shape": "dot", "size": 20.0, "title": "Entity: datasets"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_38", "label": "corpora aggregations", "shape": "dot", "size": 20.0, "title": "Entity: corpora aggregations"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_39", "label": "language understanding", "shape": "dot", "size": 20.0, "title": "Entity: language understanding"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_40", "label": "benchmark", "shape": "dot", "size": 20.0, "title": "Entity: benchmark"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_41", "label": "MMLU", "shape": "dot", "size": 20.0, "title": "Entity: MMLU"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_42", "label": "law", "shape": "dot", "size": 20.0, "title": "Entity: law"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_43", "label": "OASST1 dataset", "shape": "dot", "size": 20.0, "title": "Entity: OASST1 dataset"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_44", "label": "GPT-4", "shape": "dot", "size": 20.0, "title": "Entity: GPT-4"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_45", "label": "ChatGPT", "shape": "dot", "size": 20.0, "title": "Entity: ChatGPT"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_46", "label": "chatbot performance", "shape": "dot", "size": 20.0, "title": "Entity: chatbot performance"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_47", "label": "65B", "shape": "dot", "size": 20.0, "title": "Entity: 65B"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_48", "label": "Elo rating", "shape": "dot", "size": 20.0, "title": "Entity: Elo rating"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_49", "label": "Table 6", "shape": "dot", "size": 20.0, "title": "Entity: Table 6"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_50", "label": "model-based evaluation", "shape": "dot", "size": 20.0, "title": "Entity: model-based evaluation"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_51", "label": "text generated", "shape": "dot", "size": 20.0, "title": "Entity: text generated"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_52", "label": "Guanaco model", "shape": "dot", "size": 20.0, "title": "Entity: Guanaco model"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_53", "label": "patterns", "shape": "dot", "size": 20.0, "title": "Entity: patterns"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_54", "label": "interpretation", "shape": "dot", "size": 20.0, "title": "Entity: interpretation"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_55", "label": "Al Jolson", "shape": "dot", "size": 20.0, "title": "Entity: Al Jolson"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_56", "label": "Russia", "shape": "dot", "size": 20.0, "title": "Entity: Russia"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_57", "label": "dude", "shape": "dot", "size": 20.0, "title": "Entity: dude"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_58", "label": "$33", "shape": "dot", "size": 20.0, "title": "Entity: $33"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_59", "label": "factorization", "shape": "dot", "size": 20.0, "title": "Entity: factorization"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_60", "label": "number", "shape": "dot", "size": 20.0, "title": "Entity: number"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_61", "label": "Jackson", "shape": "dot", "size": 20.0, "title": "Entity: Jackson"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_62", "label": "Evelyn", "shape": "dot", "size": 20.0, "title": "Entity: Evelyn"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_63", "label": "information", "shape": "dot", "size": 20.0, "title": "Entity: information"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_64", "label": "evaluation systems", "shape": "dot", "size": 20.0, "title": "Entity: evaluation systems"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_65", "label": "quantization precision", "shape": "dot", "size": 20.0, "title": "Entity: quantization precision"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_66", "label": "rounding decisions", "shape": "dot", "size": 20.0, "title": "Entity: rounding decisions"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_67", "label": "chatbots", "shape": "dot", "size": 20.0, "title": "Entity: chatbots"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_68", "label": "Reinforcement Learning", "shape": "dot", "size": 20.0, "title": "Entity: Reinforcement Learning"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_69", "label": "dataset", "shape": "dot", "size": 20.0, "title": "Entity: dataset"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_70", "label": "RLHF training", "shape": "dot", "size": 20.0, "title": "Entity: RLHF training"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_71", "label": "benchmarks", "shape": "dot", "size": 20.0, "title": "Entity: benchmarks"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_72", "label": "method", "shape": "dot", "size": 20.0, "title": "Entity: method"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_73", "label": "LLMs", "shape": "dot", "size": 20.0, "title": "Entity: LLMs"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_74", "label": "Ashish Sharma", "shape": "dot", "size": 20.0, "title": "Entity: Ashish Sharma"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_75", "label": "their", "shape": "dot", "size": 20.0, "title": "Entity: their"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_76", "label": "Elo", "shape": "dot", "size": 20.0, "title": "Entity: Elo"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_77", "label": "Hyak", "shape": "dot", "size": 20.0, "title": "Entity: Hyak"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_78", "label": "r", "shape": "dot", "size": 20.0, "title": "Entity: r"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_79", "label": "collection", "shape": "dot", "size": 20.0, "title": "Entity: collection"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_80", "label": "LongForm", "shape": "dot", "size": 20.0, "title": "Entity: LongForm"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_81", "label": "Adam", "shape": "dot", "size": 20.0, "title": "Entity: Adam"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_82", "label": "beta2", "shape": "dot", "size": 20.0, "title": "Entity: beta2"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_83", "label": "chatabot", "shape": "dot", "size": 20.0, "title": "Entity: chatabot"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_84", "label": "Vicuna evaluation", "shape": "dot", "size": 20.0, "title": "Entity: Vicuna evaluation"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_85", "label": "neural network", "shape": "dot", "size": 20.0, "title": "Entity: neural network"}, {"color": "#3498db", "font": {"color": "black"}, "id": "entity_86", "label": "gradient", "shape": "dot", "size": 20.0, "title": "Entity: gradient"}]);
+                  edges = new vis.DataSet([{"color": "#e74c3c", "from": "entity_0", "label": "work for", "title": "work for: Luke Zettlemoyer \u2192 University of Washington", "to": "entity_1", "width": 9}, {"color": "#e74c3c", "from": "entity_2", "label": "evaluate for", "title": "evaluate for: chatbot \u2192 performance", "to": "entity_3", "width": 9}, {"color": "#e74c3c", "from": "entity_2", "label": "component whole", "title": "component whole: chatbot \u2192 model architectures", "to": "entity_6", "width": 9}, {"color": "#e74c3c", "from": "entity_2", "label": "evaluate for", "title": "evaluate for: Elo rating \u2192 chatbot", "to": "entity_48", "width": 9}, {"color": "#e74c3c", "from": "entity_2", "label": "component whole", "title": "component whole: dataset \u2192 chatbot", "to": "entity_69", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "component whole", "title": "component whole: Guanaco \u2192 model", "to": "entity_5", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "place of birth", "title": "place of birth: Guanaco \u2192 Guanaco", "to": "entity_4", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "component whole", "title": "component whole: Guanaco \u2192 65B", "to": "entity_47", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "compare", "title": "compare: Guanaco \u2192 ChatGPT", "to": "entity_45", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "used for", "title": "used for: Guanaco \u2192 text generated", "to": "entity_51", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "entity origin", "title": "entity origin: Al Jolson \u2192 Guanaco", "to": "entity_55", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "title of person", "title": "title of person: Guanaco \u2192 dude", "to": "entity_57", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "employee of", "title": "employee of: Guanaco \u2192 $33", "to": "entity_58", "width": 9}, {"color": "#e74c3c", "from": "entity_4", "label": "entity origin", "title": "entity origin: Guanaco \u2192 information", "to": "entity_63", "width": 9}, {"color": "#e74c3c", "from": "entity_7", "label": "component whole", "title": "component whole: transformers \u2192 Hugging Face", "to": "entity_8", "width": 9}, {"color": "#e74c3c", "from": "entity_9", "label": "component whole", "title": "component whole: tensor \u2192 data type", "to": "entity_10", "width": 9}, {"color": "#e74c3c", "from": "entity_9", "label": "component whole", "title": "component whole: tensor \u2192 input", "to": "entity_11", "width": 9}, {"color": "#e74c3c", "from": "entity_12", "label": "component whole", "title": "component whole: LoRA \u2192 weights", "to": "entity_13", "width": 9}, {"color": "#e74c3c", "from": "entity_12", "label": "component whole", "title": "component whole: LoRA \u2192 finetuning", "to": "entity_33", "width": 9}, {"color": "#e74c3c", "from": "entity_12", "label": "component whole", "title": "component whole: LoRA \u2192 r", "to": "entity_78", "width": 9}, {"color": "#e74c3c", "from": "entity_13", "label": "component whole", "title": "component whole: weights \u2192 neural network", "to": "entity_85", "width": 9}, {"color": "#e74c3c", "from": "entity_14", "label": "component whole", "title": "component whole: QLORA \u2192 NormalFloat", "to": "entity_15", "width": 9}, {"color": "#e74c3c", "from": "entity_16", "label": "distribution", "title": "distribution: normal distribution \u2192 neural network weights", "to": "entity_17", "width": 9}, {"color": "#e74c3c", "from": "entity_17", "label": "adverse effect", "title": "adverse effect: GPT-4 \u2192 neural network weights", "to": "entity_44", "width": 9}, {"color": "#e74c3c", "from": "entity_18", "label": "feature of", "title": "feature of: normal distributions \u2192 zero-mean", "to": "entity_19", "width": 9}, {"color": "#e74c3c", "from": "entity_20", "label": "component whole", "title": "component whole: blocksize \u2192 overhead", "to": "entity_21", "width": 9}, {"color": "#e74c3c", "from": "entity_22", "label": "instrument agency", "title": "instrument agency: Optimizers \u2192 memory", "to": "entity_23", "width": 9}, {"color": "#e74c3c", "from": "entity_24", "label": "component whole", "title": "component whole: parameter \u2192 error", "to": "entity_25", "width": 9}, {"color": "#e74c3c", "from": "entity_26", "label": "component whole", "title": "component whole: decoder \u2192 architectures", "to": "entity_27", "width": 9}, {"color": "#e74c3c", "from": "entity_27", "label": "component whole", "title": "component whole: setup \u2192 architectures", "to": "entity_28", "width": 9}, {"color": "#e74c3c", "from": "entity_29", "label": "place of birth", "title": "place of birth: Alpaca \u2192 Alpaca", "to": "entity_29", "width": 9}, {"color": "#e74c3c", "from": "entity_30", "label": "hyponym of", "title": "hyponym of: LLaMA \u2192 LLaMA", "to": "entity_30", "width": 9}, {"color": "#e74c3c", "from": "entity_30", "label": "component whole", "title": "component whole: LLaMA \u2192 models", "to": "entity_34", "width": 9}, {"color": "#e74c3c", "from": "entity_31", "label": "component whole", "title": "component whole: data \u2192 types", "to": "entity_32", "width": 9}, {"color": "#e74c3c", "from": "entity_31", "label": "entity origin", "title": "entity origin: data \u2192 evaluation systems", "to": "entity_64", "width": 9}, {"color": "#e74c3c", "from": "entity_31", "label": "component whole", "title": "component whole: data \u2192 models", "to": "entity_34", "width": 9}, {"color": "#e74c3c", "from": "entity_33", "label": "component whole", "title": "component whole: finetuning \u2192 models", "to": "entity_34", "width": 9}, {"color": "#e74c3c", "from": "entity_33", "label": "component whole", "title": "component whole: finetuning \u2192 QLoRA", "to": "entity_35", "width": 9}, {"color": "#e74c3c", "from": "entity_33", "label": "component whole", "title": "component whole: method \u2192 finetuning", "to": "entity_72", "width": 9}, {"color": "#e74c3c", "from": "entity_36", "label": "component whole", "title": "component whole: instruction \u2192 datasets", "to": "entity_37", "width": 9}, {"color": "#e74c3c", "from": "entity_36", "label": "component whole", "title": "component whole: instruction \u2192 chatabot", "to": "entity_83", "width": 9}, {"color": "#e74c3c", "from": "entity_37", "label": "component whole", "title": "component whole: datasets \u2192 corpora aggregations", "to": "entity_38", "width": 9}, {"color": "#e74c3c", "from": "entity_39", "label": "component whole", "title": "component whole: language understanding \u2192 benchmark", "to": "entity_40", "width": 9}, {"color": "#e74c3c", "from": "entity_39", "label": "evaluate for", "title": "evaluate for: MMLU \u2192 language understanding", "to": "entity_41", "width": 9}, {"color": "#e74c3c", "from": "entity_42", "label": "entity origin", "title": "entity origin: law \u2192 OASST1 dataset", "to": "entity_43", "width": 9}, {"color": "#e74c3c", "from": "entity_44", "label": "hyponym of", "title": "hyponym of: GPT-4 \u2192 ChatGPT", "to": "entity_45", "width": 9}, {"color": "#e74c3c", "from": "entity_44", "label": "used for", "title": "used for: GPT-4 \u2192 chatbot performance", "to": "entity_46", "width": 9}, {"color": "#e74c3c", "from": "entity_44", "label": "entity origin", "title": "entity origin: GPT-4 \u2192 Table 6", "to": "entity_49", "width": 9}, {"color": "#e74c3c", "from": "entity_44", "label": "evaluate for", "title": "evaluate for: GPT-4 \u2192 model-based evaluation", "to": "entity_50", "width": 9}, {"color": "#e74c3c", "from": "entity_44", "label": "evaluate for", "title": "evaluate for: Vicuna evaluation \u2192 GPT-4", "to": "entity_84", "width": 9}, {"color": "#e74c3c", "from": "entity_44", "label": "adverse effect", "title": "adverse effect: GPT-4 \u2192 gradient", "to": "entity_86", "width": 9}, {"color": "#e74c3c", "from": "entity_52", "label": "used for", "title": "used for: Guanaco model \u2192 patterns", "to": "entity_53", "width": 9}, {"color": "#e74c3c", "from": "entity_53", "label": "used for", "title": "used for: patterns \u2192 interpretation", "to": "entity_54", "width": 9}, {"color": "#e74c3c", "from": "entity_55", "label": "place of birth", "title": "place of birth: Al Jolson \u2192 Russia", "to": "entity_56", "width": 9}, {"color": "#e74c3c", "from": "entity_59", "label": "component whole", "title": "component whole: factorization \u2192 number", "to": "entity_60", "width": 9}, {"color": "#e74c3c", "from": "entity_61", "label": "person of company", "title": "person of company: Jackson \u2192 Evelyn", "to": "entity_62", "width": 9}, {"color": "#e74c3c", "from": "entity_65", "label": "used for", "title": "used for: quantization precision \u2192 rounding decisions", "to": "entity_66", "width": 9}, {"color": "#e74c3c", "from": "entity_67", "label": "component whole", "title": "component whole: chatbots \u2192 Reinforcement Learning", "to": "entity_68", "width": 9}, {"color": "#e74c3c", "from": "entity_67", "label": "evaluate for", "title": "evaluate for: benchmarks \u2192 chatbots", "to": "entity_71", "width": 9}, {"color": "#e74c3c", "from": "entity_67", "label": "component whole", "title": "component whole: LLMs \u2192 chatbots", "to": "entity_73", "width": 9}, {"color": "#e74c3c", "from": "entity_69", "label": "used for", "title": "used for: dataset \u2192 RLHF training", "to": "entity_70", "width": 9}, {"color": "#e74c3c", "from": "entity_69", "label": "component whole", "title": "component whole: collection \u2192 dataset", "to": "entity_79", "width": 9}, {"color": "#e74c3c", "from": "entity_69", "label": "component whole", "title": "component whole: LongForm \u2192 dataset", "to": "entity_80", "width": 9}, {"color": "#e74c3c", "from": "entity_74", "label": "person of company", "title": "person of company: Ashish Sharma \u2192 their", "to": "entity_75", "width": 9}, {"color": "#e74c3c", "from": "entity_76", "label": "top members employees", "title": "top members employees: Elo \u2192 Hyak", "to": "entity_77", "width": 9}, {"color": "#e74c3c", "from": "entity_81", "label": "component whole", "title": "component whole: Adam \u2192 beta2", "to": "entity_82", "width": 9}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true,
+        "filter": [
+            "physics"
+        ]
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "forceAtlas2Based": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.01,
+            "damping": 0.4,
+            "gravitationalConstant": -50,
+            "springConstant": 0.08,
+            "springLength": 100
+        },
+        "solver": "forceAtlas2Based",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
