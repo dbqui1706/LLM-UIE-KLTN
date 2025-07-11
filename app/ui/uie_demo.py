@@ -21,7 +21,8 @@ class UIEUi:
         try:
             self.current_chunks = None
             self.model = LLamaModel(model_name=self.MODEL_NAME)  # Uncomment when model available
-            # self.model = None
+            self.last_text_results = None
+            self.last_document_results = None
 
             self.load_status = "success" if (
                     self.model and hasattr(self.model, 'model') and self.model.model) else "failed"
@@ -52,8 +53,12 @@ class UIEUi:
 
             # Extract using model or mock
             result = self.model.extract(text=text, task=task, user_schema=user_schema, mode=mode, **gen_params)
-            pprint(result)
+            
             logger.info(f"✅ Extraction completed for task: {task}")
+
+            # Save for visualization
+            self.last_text_results = result
+
             return format_extraction_result(result, task, text, gen_params)
 
         except Exception as e:
@@ -90,6 +95,9 @@ class UIEUi:
 
             extracted_count = len(aggregated.get(get_result_key(task), []))
             logger.info(f"✅ Sequential extraction completed: {extracted_count} {task} items extracted")
+
+            self.last_document_results = result
+
             return result
 
         except Exception as e:
@@ -105,6 +113,18 @@ class UIEUi:
     def set_current_chunks(self, chunks):
         self.current_chunks = chunks
         logger.info(f"📦 Set {len(chunks)} chunks for processing")
+
+    def get_last_text_results(self):
+        if self.last_text_results is None:
+            logger.warning("No find last text result!")
+            return None
+        return self.last_text_results
+    
+    def get_last_document_results(self):
+        if self.last_document_results is None:
+            logger.warning("No find last document result!")
+            return None
+        return self.last_document_results
 
     def _validate_chunk_extraction(self, task: str) -> Dict:
         if not validate_chunk_extraction_task(task):

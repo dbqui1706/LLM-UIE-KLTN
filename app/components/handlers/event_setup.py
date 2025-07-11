@@ -76,6 +76,64 @@ class TabEventHandlers:
         
         logger.info("✅ Document Processing & Extraction tab events configured")
     
+    def setup_visualization_tab(self, components: Dict[str, Any]):
+        """Setup event handlers for Visualization tab"""
+        inputs = components['inputs']
+        outputs = components['outputs']
+        
+        logger.info("🔧 Setting up Visualization tab events")
+        
+        # Generate visualization button
+        inputs['generate_btn'].click(
+            fn=self.handlers['visualization'].generate_visualization,
+            inputs=[
+                inputs['data_source'],
+                inputs['json_upload'],
+                inputs['graph_layout'],
+                inputs['show_entities'],
+                inputs['show_relations'], 
+                inputs['show_events'],
+                inputs['node_size'],
+                inputs['edge_width'],
+                inputs['physics_enabled'],
+                inputs['show_buttons'],
+                inputs['entity_color'],
+                inputs['relation_color'],
+                inputs['event_color'],
+                inputs['background_color']
+            ],
+            outputs=[
+                outputs['graph_html'],
+                outputs['graph_stats']
+            ]
+        )
+        
+        # Export button
+        inputs['export_btn'].click(
+            fn=self._create_export_handler(),
+            inputs=[inputs['export_format']],
+            outputs=[outputs['download_file']]
+        )
+        
+        logger.info("✅ Visualization tab events configured")
+
+    def _create_export_handler(self):
+        """Create export handler for visualization"""
+        def export_handler(export_format):
+            try:
+                file_path = self.handlers['visualization'].export_current_graph(export_format)
+                if file_path:
+                    return gr.update(visible=True, value=file_path)
+                else:
+                    return gr.update(visible=False)
+            except Exception as e:
+                logger.error(f"Export failed: {e}")
+                return gr.update(visible=False)
+        
+        return export_handler
+
+
+
     def _setup_preset_buttons(self, gen_controls: tuple):
         """Setup generation preset buttons"""
         preset_handler = self.handlers['preset_manager']
@@ -198,8 +256,10 @@ class EventSetupManager:
                 self.tab_handlers.setup_document_processing_extraction_tab(
                     components['document_processing_extraction']
                 )
+            # Visualization 
+            if 'visualization' in components:
+                self.tab_handlers.setup_visualization_tab(components['visualization'])
             
-            # Setup legacy tabs if present
             self._setup_tabs(components)
             
             logger.info("✅ All event handlers setup successfully!")

@@ -4,6 +4,7 @@ from .text import TextExtractionHandler
 from .document import DocumentProcessingHandler
 from .chunk import ChunkExtractionHandler
 from .preset_manager import PresetManager
+from .visualization import VisualizationHandler
 
 class HandlerFactory:
 
@@ -11,7 +12,8 @@ class HandlerFactory:
         'text_extraction': TextExtractionHandler,
         'document_processing': DocumentProcessingHandler,
         'chunk_extraction': ChunkExtractionHandler,
-        'preset_manager': PresetManager
+        'preset_manager': PresetManager,
+        'visualization': VisualizationHandler
     }
     
     @classmethod

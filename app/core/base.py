@@ -231,7 +231,7 @@ class LLamaModel(BaseModel):
 
         # Generate and format prompt
         prompt = self.prompter.create_prompt(task_type.value, text, task_schema, mode)
-        pprint(f"\n============== Prompt ==============  \n{prompt}\n")
+        # pprint(f"\n============== Prompt ==============  \n{prompt}\n")
         formatted_prompt = self.format_chat_template(system_prompt, prompt)
 
         # Generate response

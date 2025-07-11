@@ -231,9 +231,9 @@ def _create_extraction_task_controls():
     with gr.Accordion("🎯 Extraction Configuration", open=True):
         # Task selection
         task_dropdown = gr.Dropdown(
-            choices=["NER", "RE", "EE", "ALL"],
+            choices=["NER", "RE", "EE"],
             label="Extraction Task",
-            value="ALL",
+            value="NER",
             info="Select which information to extract"
         )
         
