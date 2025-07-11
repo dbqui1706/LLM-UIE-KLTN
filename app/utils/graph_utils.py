@@ -263,8 +263,6 @@ class GraphVisualizer:
           html_content = net.generate_html()
           with open('test_basic.html', 'w', encoding='utf-8') as f:
               f.write(html_content)
-
-          
           return self._create_data_url_iframe(html_content)
         except Exception as e:
           logger.error(f"❌ PyVis visualization failed: {e}")
