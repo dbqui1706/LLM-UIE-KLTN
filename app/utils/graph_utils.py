@@ -488,15 +488,15 @@ class GraphVisualizer:
         <div style='padding: 20px; border: 2px solid #f39c12; border-radius: 10px; background-color: #fffbf0;'>
             <h3>⚠️ Visualization Fallback Mode</h3>
             <p>Interactive visualization failed. Here's your graph data:</p>
-            
+
             <h4>📊 Nodes ({len(graph.nodes)}):</h4>
             <ul>{''.join(nodes_info)}</ul>
             {f'<p>... and {len(graph.nodes) - 10} more nodes</p>' if len(graph.nodes) > 10 else ''}
-            
+
             <h4>🔗 Edges ({len(graph.edges)}):</h4>
             <ul>{''.join(edges_info)}</ul>
             {f'<p>... and {len(graph.edges) - 10} more edges</p>' if len(graph.edges) > 10 else ''}
-            
+
             <p style="margin-top: 15px; color: #666;">
                 💡 <strong>Tip:</strong> Use the Export button to get a working interactive HTML file.
             </p>
