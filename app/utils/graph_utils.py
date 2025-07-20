@@ -1,14 +1,12 @@
 # app/utils/graph_utils.py
 import networkx as nx
 from pyvis.network import Network
-import base64
 import json
 import tempfile
 from datetime import datetime
 import base64
 import logging
-from typing import Dict, List, Any, Optional, Tuple
-import colorsys
+from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
