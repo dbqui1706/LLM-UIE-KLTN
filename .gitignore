@@ -17,3 +17,5 @@ scratch/
 
 *.log
 unsloth_compiled_cache/
+
+lib/
