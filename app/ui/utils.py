@@ -1,4 +1,3 @@
-# app/ui/utils.py
 import logging
 from typing import List, Dict, Any
 
