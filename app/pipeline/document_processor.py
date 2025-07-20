@@ -64,7 +64,7 @@ class DocumentProcessor:
 
         # Configure accelerator
         if self.use_gpu and torch.cuda.is_available():
-            device = AcceleratorDevice.AUTO  # Let Docling auto-detect best device
+            device = "cuda:1"  # Let Docling auto-detect best device
         else:
             device = AcceleratorDevice.CPU
 

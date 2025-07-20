@@ -9,6 +9,7 @@ sys.path.append(project_root)
 from app.components import (
     text_extraction_tab,
     document_processing_extraction_tab,
+    visualization_tab
 )
 from app.components.handlers import setup_event_handlers, EventHandlers
 
@@ -30,9 +31,13 @@ def main():
             with gr.TabItem("📄 Document Processing & Extraction"):
                 document_processing_extraction_comp = document_processing_extraction_tab()
 
+            with gr.TabItem("🔗 Graph Visualization"):
+                visualization_comp = visualization_tab()
+
         components = {
             'text_extraction': text_extraction_comp,
-            'document_processing_extraction': document_processing_extraction_comp
+            'document_processing_extraction': document_processing_extraction_comp,
+            'visualization': visualization_comp
         }
 
         # Setup tất cả event handlers

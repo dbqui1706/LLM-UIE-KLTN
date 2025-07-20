@@ -64,12 +64,10 @@ Text: {text}"""
 
 
 class SchemaManager:
-    """Manages schema resolution strategies"""
-
     DEFAULT_SCHEMAS = {
-        'NER': {'entity_types': NER_SCHEMA},
-        'RE': {'relation_types': RE_SCHEMA},
-        'EE': {'event_types': EET_SCHEMA, 'argument_types': EEA_SCHEMA}
+        'NER': {'entity_types': set(NER_SCHEMA)},
+        'RE': {'relation_types': set(RE_SCHEMA)},
+        'EE': {'event_types': set(EET_SCHEMA), 'argument_types': set(EEA_SCHEMA)}
     }
 
     @classmethod

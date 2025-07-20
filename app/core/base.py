@@ -10,7 +10,7 @@ from enum import Enum
 from pprint import pprint
 
 from .prompt import PromptManager
-from .parser import TaskParser  
+from .parser import TaskParser
 from .extract import UIEResult, NER, RE, EE
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ class BaseModel(ABC):
                            temperature: float = 0.1, **kwargs) -> str:
         """Generate response using the loaded model"""
         if not self.model or not self.tokenizer:
-          raise RuntimeError("Model not loaded. Call load_model() first.")
+            raise RuntimeError("Model not loaded. Call load_model() first.")
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
@@ -120,13 +120,13 @@ class BaseModel(ABC):
                 'pad_token_id': self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
                 'eos_token_id': self.tokenizer.eos_token_id,
             }
-            
+
             # ✅ Set defaults only if not provided in kwargs
             if 'do_sample' not in kwargs:
                 generation_params['do_sample'] = True
             if 'top_p' not in kwargs:
                 generation_params['top_p'] = 0.8
-                
+
             # ✅ Update with user-provided kwargs (overwrites defaults)
             generation_params.update(kwargs)
 
@@ -231,7 +231,7 @@ class LLamaModel(BaseModel):
 
         # Generate and format prompt
         prompt = self.prompter.create_prompt(task_type.value, text, task_schema, mode)
-        pprint(f"\n============== Prompt ==============  \n{prompt}\n")
+        # pprint(f"\n============== Prompt ==============  \n{prompt}\n")
         formatted_prompt = self.format_chat_template(system_prompt, prompt)
 
         # Generate response

@@ -2,8 +2,6 @@ import gradio as gr
 from .generation_controls import create_generation_controls, create_schema_inputs
 
 def document_processing_extraction_tab():
-    """Create combined document processing and extraction tab"""
-    
     with gr.Row():
         with gr.Column(scale=2):
             gr.Markdown("## 📁 Document Upload & Processing")
@@ -121,7 +119,6 @@ def document_processing_extraction_tab():
 
 
 def _create_processing_options():
-    """Create processing options section"""
     with gr.Accordion("⚙️ Processing Options", open=False):
         processing_mode = gr.Dropdown(
             choices=["fast", "balanced", "accurate", "batch"],
@@ -192,8 +189,6 @@ def _create_chunking_options():
                 "recursive", 
                 "markdown",
                 "semantic",
-                # "spacy",
-                # "hybrid"
             ],
             label="Chunking Strategy",
             value="sentence",
@@ -231,9 +226,9 @@ def _create_extraction_task_controls():
     with gr.Accordion("🎯 Extraction Configuration", open=True):
         # Task selection
         task_dropdown = gr.Dropdown(
-            choices=["NER", "RE", "EE", "ALL"],
+            choices=["NER", "RE", "EE"],
             label="Extraction Task",
-            value="ALL",
+            value="RE",
             info="Select which information to extract"
         )
         
